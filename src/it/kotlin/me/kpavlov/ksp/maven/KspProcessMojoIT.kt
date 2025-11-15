@@ -4,16 +4,17 @@ import org.apache.maven.shared.verifier.Verifier
 import org.apache.maven.shared.verifier.util.ResourceExtractor
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
  * Integration tests for KSP Maven Plugin using Maven Verifier
  */
-//@Disabled("manually")
 class KspProcessMojoIT {
 
     companion object {
@@ -21,6 +22,7 @@ class KspProcessMojoIT {
         private lateinit var kspVersion: String
         private lateinit var kotlinVersion: String
         private lateinit var localRepoPath: String
+        private val projectDir: String = TestEnvironment.projectDir
 
         @JvmStatic
         @BeforeAll
@@ -31,23 +33,27 @@ class KspProcessMojoIT {
             kotlinVersion = System.getProperty("kotlin.version", "2.2.21")
 
             // Use local repository in target directory
-            val projectDir = System.getProperty("user.dir")
             localRepoPath = "$projectDir/target/local-repo"
         }
     }
 
-    @TempDir
-    lateinit var tempDir: Path
+    private val testProjectsDir: Path = TestEnvironment.testProjectsDir
 
     @Test
     fun `should generate code using test KSP processor`() {
         // Given
         val testProject = createTestProject("simple-project")
 
+        // Debug: Print local repo path and POM
+        println("=== Using local repo: $localRepoPath ===")
+        println("=== Test project POM ===")
+        println(testProject.resolve("pom.xml").readText())
+        println("========================")
+
         // When
         val verifier = Verifier(testProject.absolutePath)
         verifier.isAutoclean = false
-        verifier.isDebug = true
+        verifier.setLocalRepo(localRepoPath)
         verifier.addCliArgument("clean")
         verifier.addCliArgument("compile")
         verifier.execute()
@@ -92,6 +98,7 @@ class KspProcessMojoIT {
         // When
         val verifier = Verifier(testProject.absolutePath)
         verifier.isAutoclean = false
+        verifier.setLocalRepo(localRepoPath)
         verifier.addCliArgument("clean")
         verifier.addCliArgument("compile")
         verifier.execute()
@@ -109,6 +116,7 @@ class KspProcessMojoIT {
         // When
         val verifier = Verifier(testProject.absolutePath)
         verifier.isAutoclean = false
+        verifier.setLocalRepo(localRepoPath)
         verifier.addCliArgument("-Dksp.skip=true")
         verifier.addCliArgument("clean")
         verifier.addCliArgument("compile")
@@ -131,6 +139,7 @@ class KspProcessMojoIT {
         // When
         val verifier = Verifier(testProject.absolutePath)
         verifier.isAutoclean = false
+        verifier.setLocalRepo(localRepoPath)
         verifier.addCliArgument("clean")
         verifier.addCliArgument("compile")
         verifier.execute()
@@ -161,6 +170,7 @@ class KspProcessMojoIT {
         // When
         val verifier = Verifier(testProject.absolutePath)
         verifier.isAutoclean = false
+        verifier.setLocalRepo(localRepoPath)
         verifier.addCliArgument("clean")
         verifier.addCliArgument("compile")
         verifier.execute()
@@ -178,7 +188,7 @@ class KspProcessMojoIT {
         multipleFiles: Boolean = false,
         withOptions: Boolean = false
     ): File {
-        val projectDir = tempDir.resolve(projectName).toFile()
+        val projectDir = testProjectsDir.resolve(projectName).toFile()
         projectDir.mkdirs()
 
         // Create pom.xml
@@ -221,7 +231,7 @@ class KspProcessMojoIT {
         } else {
             ""
         }
-
+        // language=xml
         val pluginOptions = if (withOptions) {
             """
             <configuration>
@@ -234,6 +244,7 @@ class KspProcessMojoIT {
             ""
         }
 
+        // language=xml
         val pomContent = """
             <?xml version="1.0" encoding="UTF-8"?>
             <project xmlns="http://maven.apache.org/POM/4.0.0"
