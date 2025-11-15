@@ -1,5 +1,11 @@
 package me.kpavlov.ksp.maven
 
+import com.google.devtools.ksp.impl.KotlinSymbolProcessing
+import com.google.devtools.ksp.processing.KSPJvmConfig
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.SymbolProcessorProvider
+import com.google.devtools.ksp.symbol.KSNode
+import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.maven.artifact.Artifact
 import org.apache.maven.model.Resource
 import org.apache.maven.plugin.AbstractMojo
@@ -14,8 +20,10 @@ import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import java.io.File
 import java.io.IOException
+import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.*
 import java.util.jar.JarFile
 import java.util.stream.Collectors
 
@@ -32,13 +40,13 @@ import java.util.stream.Collectors
 )
 class KspProcessMojo : AbstractMojo() {
     @Parameter(defaultValue = $$"${project}", readonly = true, required = true)
-    private val project: MavenProject? = null
+    private lateinit var project: MavenProject
 
     /**
      * Source directories to process
      */
     @Parameter(defaultValue = $$"${project.build.sourceDirectory}")
-    private val sourceDirectory: File? = null
+    private lateinit var sourceDirectory: File
 
     /**
      * Additional source directories
@@ -89,10 +97,16 @@ class KspProcessMojo : AbstractMojo() {
     private val incremental = false
 
     /**
+     * Enable debug output
+     */
+    @Parameter(defaultValue = "false")
+    private val debug = false
+
+    /**
      * KSP processor options (key-value pairs)
      */
     @Parameter
-    private val apOptions: MutableMap<String?, String?>? = null
+    private val apOptions: MutableMap<String, String> = mutableMapOf()
 
     /**
      * Additional compiler arguments
@@ -136,6 +150,40 @@ class KspProcessMojo : AbstractMojo() {
     @Parameter(defaultValue = "2.2.21")
     private lateinit var kotlinVersion: String
 
+    private val kspLogger = object : KSPLogger {
+        override fun error(
+            message: String,
+            symbol: KSNode?
+        ) {
+            log.error("$message: $symbol")
+        }
+
+        override fun exception(e: Throwable) {
+            log.error(e.message, e)
+        }
+
+        override fun info(
+            message: String,
+            symbol: KSNode?
+        ) {
+            log.info("$message: $symbol")
+        }
+
+        override fun logging(
+            message: String,
+            symbol: KSNode?
+        ) {
+            log.info("$message: $symbol")
+        }
+
+        override fun warn(
+            message: String,
+            symbol: KSNode?
+        ) {
+            log.warn("$message: $symbol")
+        }
+    }
+
     @Throws(MojoExecutionException::class, MojoFailureException::class)
     override fun execute() {
         if (skip) {
@@ -153,17 +201,83 @@ class KspProcessMojo : AbstractMojo() {
             return
         }
 
-        log.info("Found " + processorJars.size + " KSP processor(s)")
+        log.info("Found ${processorJars.size} KSP processor(s)")
+        if (debug && processorJars.isNotEmpty()) {
+            log.info(
+                "${processorJars.size} KSP processor(s):\n" + processorJars.joinToString(
+                    prefix = " - ",
+                    separator = "\n - "
+                ) { it.name })
+        }
+
+        log.info("Calling KSP processing")
+        executeKsp(processorJars)
+        log.info("End KSP processing")
 
         // Build command arguments
-        val args = buildCompilerArgs(processorJars)
+        //val args = buildCompilerArgs(processorJars)
 
         // Execute kotlinc
-        executeKotlinCompiler(args)
+        //executeKotlinCompiler(args)
 
         // Add generated sources to project
         if (addGeneratedSourcesToCompile) {
             addGeneratedSources()
+        }
+    }
+
+    private fun executeKsp(processorJars: MutableList<File>) {
+        log.info("Preparing processor Classloader")
+        val processorClassloader =
+            URLClassLoader(processorJars.map { it.toURI().toURL() }.toTypedArray())
+
+        log.info("Processor Classloader: $processorClassloader")
+
+        val processorProviders = ServiceLoader
+            .load(SymbolProcessorProvider::class.java)
+            .toList()
+
+        log.info("Processor processorProviders: $processorProviders")
+
+        // https://github.com/google/ksp/blob/main/docs/ksp2cmdline.md
+        val kspConfig = KSPJvmConfig(
+            javaSourceRoots = emptyList(),
+            javaOutputDir = javaOutputDir,
+            jdkHome = File(System.getProperty("java.home")),
+            jvmTarget = jvmTarget,
+            jvmDefaultMode = "disable",
+            moduleName = moduleName,
+            sourceRoots = listOf(sourceDirectory),
+            commonSourceRoots = emptyList(),
+            libraries = project.compileClasspathElements.map { File(it) },
+            friends = emptyList(),
+            processorOptions = apOptions,
+            projectBaseDir = project.basedir,
+            outputBaseDir = File(project.build.outputDirectory),
+            cachesDir = cachesDir,
+            classOutputDir = classOutputDir,
+            kotlinOutputDir = kotlinOutputDir,
+            resourceOutputDir = resourceOutputDir,
+            incremental = true,
+            incrementalLog = true,
+            modifiedSources = emptyList(),
+            removedSources = emptyList(),
+            changedClasses = emptyList(),
+            languageVersion = "2.2",
+            apiVersion = "2.2",
+            allWarningsAsErrors = true,
+            mapAnnotationArgumentsInJava = true
+        )
+
+        log.info("Calling KSP processing with config: ${ToStringBuilder.reflectionToString(kspConfig)}")
+        val exitCode = KotlinSymbolProcessing(
+            kspConfig = kspConfig,
+            symbolProcessorProviders = processorProviders,
+            logger = kspLogger
+        ).execute()
+
+        if (exitCode != KotlinSymbolProcessing.ExitCode.OK) {
+            log.error("Failed to process KSP processor(s): $exitCode")
         }
     }
 
@@ -184,7 +298,7 @@ class KspProcessMojo : AbstractMojo() {
     private fun findKspProcessors(): MutableList<File> {
         val processors: MutableList<File> = mutableListOf()
 
-        for (artifact in project!!.artifacts) {
+        for (artifact in project.artifacts) {
             val file = artifact.file
             if (file != null && file.exists() && isKspProcessor(file)) {
                 processors.add(file)
@@ -204,7 +318,7 @@ class KspProcessMojo : AbstractMojo() {
             )
             jarFile.close()
             return entry != null
-        } catch (e: IOException) {
+        } catch (_: IOException) {
             return false
         }
     }
@@ -216,25 +330,21 @@ class KspProcessMojo : AbstractMojo() {
         // Find KSP plugin JARs
         val kspPluginJar =
             findDependency("com.google.devtools.ksp", "symbol-processing-aa-embeddable")
-        val kspApiJar = findDependency("com.google.devtools.ksp", "symbol-processing-api")
 
         if (kspPluginJar == null) {
             throw MojoExecutionException(
                 "KSP plugin JAR not found. Add dependency: com.google.devtools.ksp:ssymbol-processing-aa-embeddable:$kspVersion"
             )
         }
-        if (kspApiJar == null) {
-            throw MojoExecutionException(
-                "KSP API JAR not found. Add dependency: com.google.devtools.ksp:symbol-processing-api:$kspVersion"
-            )
-        }
 
         // Add KSP plugin
         args.add("-Xplugin=" + kspPluginJar.absolutePath)
-        args.add("-Xplugin=" + kspApiJar.absolutePath)
 
         // Allow compilation with no source files
         args.add("-Xallow-no-source-files")
+
+        // Prevent adding kotlin-stdlib.jar to classpath
+        args.add("-no-stdlib")
 
         // Module name
         args.add("-module-name")
@@ -256,7 +366,7 @@ class KspProcessMojo : AbstractMojo() {
 
         // Project base directory
         args.add("-P")
-        args.add(pluginPrefix + "projectBaseDir=" + project!!.basedir.absolutePath)
+        args.add(pluginPrefix + "projectBaseDir=" + project.basedir.absolutePath)
 
         // Output directories
         args.add("-P")
@@ -308,7 +418,7 @@ class KspProcessMojo : AbstractMojo() {
     }
 
     private fun findDependency(groupId: String, artifactId: String): File? {
-        for (artifact in project!!.artifacts) {
+        for (artifact in project.artifacts) {
             if (artifact.groupId == groupId &&
                 artifact.artifactId == artifactId
             ) {
@@ -319,7 +429,7 @@ class KspProcessMojo : AbstractMojo() {
     }
 
     private val classpath: String
-        get() = project!!.artifacts.stream()
+        get() = project.artifacts.stream()
             .filter { a: Artifact? -> a!!.file != null && a.file.exists() }
             .map { a: Artifact? -> a!!.file.absolutePath }
             .collect(Collectors.joining(File.pathSeparator))
@@ -328,20 +438,26 @@ class KspProcessMojo : AbstractMojo() {
     private fun collectSourceFiles(): MutableList<File> {
         val sources: MutableList<File> = ArrayList()
 
-
         // Main source directory
         if (sourceDirectory != null && sourceDirectory.exists()) {
+            log.info("Collecting sources from: ${sourceDirectory.absolutePath}")
             collectKotlinFiles(sourceDirectory, sources)
+        } else {
+            log.warn("Source directory does not exist or is null: $sourceDirectory")
         }
 
         // Additional source directories
         if (sourceDirs != null) {
             for (dir in sourceDirs) {
                 if (dir != null && dir.exists()) {
+                    log.info("Collecting sources from additional directory: ${dir.absolutePath}")
                     collectKotlinFiles(dir, sources)
                 }
             }
         }
+
+        log.info("Collected ${sources.size} Kotlin source file(s)")
+        sources.forEach { log.debug("  ${it.absolutePath}") }
 
         return sources
     }
@@ -352,7 +468,9 @@ class KspProcessMojo : AbstractMojo() {
             Files.walk(dir.toPath())
                 .filter { path: Path? -> Files.isRegularFile(path) }
                 .filter { p: Path? -> p.toString().endsWith(".kt") }
-                .forEach { p: Path? -> files.add(p!!.toFile()) }
+                .map { p: Path? -> p!!.toFile() }
+                .peek { log.info("Adding: $it") }
+                .forEach { files.add(it) }
         } catch (e: IOException) {
             throw MojoExecutionException("Failed to collect source files from $dir", e)
         }
@@ -362,10 +480,10 @@ class KspProcessMojo : AbstractMojo() {
     private fun executeKotlinCompiler(args: MutableList<String>) {
         log.info("Running KSP processing...")
 
-        if (log.isDebugEnabled) {
-            log.debug("Compiler arguments:")
+        if (debug) {
+            log.info("Compiler arguments:")
             for (arg in args) {
-                log.debug("  $arg")
+                log.info("  $arg")
             }
         }
 
@@ -373,10 +491,8 @@ class KspProcessMojo : AbstractMojo() {
             // Use Kotlin compiler embeddable
             val compiler = K2JVMCompiler()
 
-
             // Convert arguments to array
             val argsArray = args.toTypedArray<String>()
-
 
             // Execute compilation
             val exitCode: ExitCode = compiler.exec(
@@ -397,19 +513,19 @@ class KspProcessMojo : AbstractMojo() {
     private fun addGeneratedSources() {
         if (kotlinOutputDir.exists()) {
             log.info("Adding generated Kotlin sources: $kotlinOutputDir")
-            project!!.addCompileSourceRoot(kotlinOutputDir.absolutePath)
+            project.addCompileSourceRoot(kotlinOutputDir.absolutePath)
         }
 
         if (javaOutputDir.exists() && javaOutputDir != kotlinOutputDir) {
             log.info("Adding generated Java sources: $javaOutputDir")
-            project!!.addCompileSourceRoot(javaOutputDir.absolutePath)
+            project.addCompileSourceRoot(javaOutputDir.absolutePath)
         }
 
         if (resourceOutputDir.exists()) {
             log.info("Adding generated resources: $resourceOutputDir")
             val resource = Resource()
             resource.directory = resourceOutputDir.absolutePath
-            project!!.addResource(resource)
+            project.addResource(resource)
         }
     }
 

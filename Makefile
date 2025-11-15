@@ -1,4 +1,9 @@
+.PHONY: build
 build:
+	@mvn clean install && \
+		(cd test-projects/simple-project && mvn test -X)
+
+build2:
 	  mvn clean verify dokka:dokka site
 
 apidocs:

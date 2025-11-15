@@ -19,15 +19,24 @@ class HelloProcessor(
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        logger.warn("=== HelloProcessor.process() called ===")
+        logger.warn("Looking for annotation: ${GenerateHello::class.qualifiedName}")
+
         val symbols = resolver.getSymbolsWithAnnotation(GenerateHello::class.qualifiedName!!)
-        val validSymbols = symbols.filter { it.validate() }
+        val symbolsList = symbols.toList()
+        logger.warn("Found ${symbolsList.size} symbols with @GenerateHello annotation")
+
+        val validSymbols = symbolsList.filter { it.validate() }
+        logger.warn("${validSymbols.size} symbols are valid")
 
         validSymbols
             .filterIsInstance<KSClassDeclaration>()
             .forEach { classDeclaration ->
+                logger.warn("Processing class: ${classDeclaration.qualifiedName?.asString()}")
                 processClass(classDeclaration)
             }
 
+        logger.warn("=== HelloProcessor.process() completed ===")
         return emptyList()
     }
 

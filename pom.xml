@@ -172,6 +172,39 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>filter-test-projects</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/test-projects</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>test-projects</directory>
+                                    <filtering>true</filtering>
+                                    <includes>
+                                        <include>**/pom.xml</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>test-projects</directory>
+                                    <filtering>false</filtering>
+                                    <excludes>
+                                        <exclude>**/pom.xml</exclude>
+                                    </excludes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
                 <version>3.6.4</version>
                 <configuration>
@@ -253,7 +286,7 @@
                             <file>${project.build.directory}/${project.build.finalName}.jar</file>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
-                            <version>${project.version}</version>
+                            <version>42-SNAPSHOT</version>
                             <packaging>maven-plugin</packaging>
                             <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
                             <pomFile>${project.basedir}/pom.xml</pomFile>
@@ -269,7 +302,7 @@
                             <file>${project.build.directory}/${project.build.finalName}-tests.jar</file>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
-                            <version>${project.version}</version>
+                            <version>42-SNAPSHOT</version>
                             <packaging>jar</packaging>
                             <classifier>tests</classifier>
                             <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
@@ -294,18 +327,6 @@
                         <goals>
                             <goal>integration-test</goal>
                             <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.jetbrains.dokka</groupId>
-                <artifactId>dokka-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>javadocJar</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -358,6 +379,17 @@
             <artifactId>symbol-processing-aa-embeddable</artifactId>
             <version>${ksp.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.devtools.ksp</groupId>
+            <artifactId>symbol-processing-api</artifactId>
+            <version>${ksp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.devtools.ksp</groupId>
+            <artifactId>symbol-processing-common-deps</artifactId>
+            <version>${ksp.version}</version>
+        </dependency>
+
         <!-- Utilities -->
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -417,12 +449,12 @@
             <scope>test</scope>
         </dependency>
         <!-- KSP API for test processor -->
-        <dependency>
-            <groupId>com.google.devtools.ksp</groupId>
-            <artifactId>symbol-processing-api</artifactId>
-            <version>${ksp.version}</version>
-            <scope>test</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.google.devtools.ksp</groupId>-->
+<!--            <artifactId>symbol-processing-api</artifactId>-->
+<!--            <version>${ksp.version}</version>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
 
     </dependencies>
 
@@ -442,6 +474,18 @@
                                     <goal>sign</goal>
                                 </goals>
                                 <phase>verify</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.jetbrains.dokka</groupId>
+                        <artifactId>dokka-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>javadocJar</goal>
+                                </goals>
                             </execution>
                         </executions>
                     </plugin>
