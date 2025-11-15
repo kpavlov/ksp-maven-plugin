@@ -1,43 +1,70 @@
 package me.kpavlov.ksp.maven
 
-import org.apache.maven.artifact.Artifact
-import org.apache.maven.artifact.DefaultArtifact
-import org.apache.maven.artifact.handler.DefaultArtifactHandler
+import com.google.devtools.ksp.impl.KotlinSymbolProcessing
+import com.google.devtools.ksp.processing.KSPConfig
+import com.google.devtools.ksp.processing.KSPJvmConfig
+import com.google.devtools.ksp.processing.SymbolProcessorProvider
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.configureMojo
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createJarWithEntries
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createKspApiJar
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createKspPluginJar
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createMockKspProcessorJar
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createRegularJar
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createSourceFile
 import org.apache.maven.plugin.MojoExecutionException
+import org.apache.maven.plugin.MojoFailureException
 import org.apache.maven.project.MavenProject
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.io.TempDir
+import org.mockito.Mock
+import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.whenever
 import java.io.File
 import java.nio.file.Path
-import java.util.jar.JarEntry
-import java.util.jar.JarOutputStream
 
-/**
- * Unit tests for KspProcessMojo
- */
-@Disabled
+@ExtendWith(MockitoExtension::class)
 class KspProcessMojoTest {
     @TempDir
     lateinit var tempDir: Path
 
     private lateinit var mojo: KspProcessMojo
     private lateinit var project: MavenProject
+    private lateinit var baseDir: File
+    private lateinit var buildDir: File
+
+    @Mock
+    private lateinit var processing: KotlinSymbolProcessing
+
+    private lateinit var capturedKSPConfig: KSPConfig
+    private lateinit var capturedSymbolProcessorProviders: List<SymbolProcessorProvider>
 
     @BeforeEach
-    fun setup() {
-        mojo = KspProcessMojo()
+    fun beforeEach() {
+        mojo =
+            KspProcessMojo(
+                kspFactory =
+                    object : KspFactory {
+                        override fun create(
+                            kspConfig: KSPConfig,
+                            symbolProcessorProviders: List<SymbolProcessorProvider>,
+                            logger: KspLogger,
+                        ): KotlinSymbolProcessing {
+                            capturedKSPConfig = kspConfig
+                            capturedSymbolProcessorProviders = symbolProcessorProviders
+                            return processing
+                        }
+                    },
+            )
 
-        val baseDir = tempDir.toFile()
+        baseDir = tempDir.toFile()
+        buildDir = baseDir.resolve("target")
 
-        // Create a proper MavenProject with basedir set
         project = MavenProject()
         project.file = baseDir.resolve("pom.xml")
-
-        // Create pom.xml to establish basedir
         project.file.parentFile.mkdirs()
         project.file.writeText(
             """
@@ -50,299 +77,216 @@ class KspProcessMojoTest {
             """.trimIndent(),
         )
 
-        // Set up build directory
-        val buildDir = baseDir.resolve("target")
         buildDir.mkdirs()
         project.build.directory = buildDir.absolutePath
         project.build.sourceDirectory = baseDir.resolve("src/main/kotlin").absolutePath
         project.build.outputDirectory = buildDir.resolve("classes").absolutePath
-
-        // Set artifact ID for module name
         project.artifactId = "test-project"
         project.model.artifactId = "test-project"
 
-        // Inject project into mojo using reflection
-        val projectField = KspProcessMojo::class.java.getDeclaredField("project")
-        projectField.isAccessible = true
-        projectField.set(mojo, project)
-
-        // Set default values for required parameters
-        setPrivateField("sourceDirectory", baseDir.resolve("src/main/kotlin"))
-        setPrivateField("kotlinOutputDir", buildDir.resolve("generated-sources/ksp"))
-        setPrivateField("javaOutputDir", buildDir.resolve("generated-sources/ksp"))
-        setPrivateField("classOutputDir", buildDir.resolve("ksp-classes"))
-        setPrivateField("resourceOutputDir", buildDir.resolve("generated-resources/ksp"))
-        setPrivateField("kspOutputDir", buildDir.resolve("ksp"))
-        setPrivateField("cachesDir", buildDir.resolve("ksp-cache"))
-        setPrivateField("moduleName", "test-project")
-        setPrivateField("jvmTarget", "11")
-        setPrivateField("kspVersion", "2.3.2")
-        setPrivateField("kotlinVersion", "2.2.21")
-        setPrivateField("skip", false)
-        setPrivateField("addGeneratedSourcesToCompile", true)
-    }
-
-    private fun setPrivateField(
-        fieldName: String,
-        value: Any,
-    ) {
-        val field = KspProcessMojo::class.java.getDeclaredField(fieldName)
-        field.isAccessible = true
-        field.set(mojo, value)
-    }
-
-    private fun getPrivateField(fieldName: String): Any? {
-        val field = KspProcessMojo::class.java.getDeclaredField(fieldName)
-        field.isAccessible = true
-        return field.get(mojo)
+        configureMojo(
+            mojo = mojo,
+            project = project,
+            sourceDirectory = baseDir.resolve("src/main/kotlin"),
+            kotlinOutputDir = buildDir.resolve("generated-sources/ksp"),
+            javaOutputDir = buildDir.resolve("generated-sources/ksp"),
+            classOutputDir = buildDir.resolve("ksp-classes"),
+            resourceOutputDir = buildDir.resolve("generated-resources/ksp"),
+            kspOutputDir = buildDir.resolve("ksp"),
+            cachesDir = buildDir.resolve("ksp-cache"),
+            moduleName = "test-project",
+            jvmTarget = "11",
+            languageVersion = "2.2",
+            apiVersion = "2.2",
+            skip = false,
+            addGeneratedSourcesToCompile = true,
+        )
     }
 
     @Test
     fun `should skip execution when skip property is true`() {
-        // Given
-        setPrivateField("skip", true)
+        configureMojo(mojo = mojo, project = project, skip = true)
 
-        // When/Then - should not throw any exception
         mojo.execute()
     }
 
     @Test
     fun `should create output directories`() {
-        // Given
-        val kspProcessors = createMockKspProcessorJar()
-        project.artifacts = setOf(kspProcessors, createKspPluginJar(), createKspApiJar())
+        val kspProcessors = createMockKspProcessorJar(tempDir)
+        project.artifacts =
+            setOf(kspProcessors, createKspPluginJar(tempDir), createKspApiJar(tempDir))
+        createSourceFile(project)
 
-        // Create source files
-        val srcDir = File(project.build.sourceDirectory)
-        srcDir.mkdirs()
-        srcDir.resolve("Test.kt").writeText("class Test")
-
-        // When
         try {
             mojo.execute()
         } catch (_: Exception) {
-            // Expected to fail during compilation, but directories should be created
         }
 
-        // Then
-        assertThat(getPrivateField("kotlinOutputDir") as File).exists()
-        assertThat(getPrivateField("javaOutputDir") as File).exists()
-        assertThat(getPrivateField("classOutputDir") as File).exists()
-        assertThat(getPrivateField("resourceOutputDir") as File).exists()
-        assertThat(getPrivateField("kspOutputDir") as File).exists()
-        assertThat(getPrivateField("cachesDir") as File).exists()
+        assertThat(buildDir.resolve("generated-sources/ksp")).exists()
+        assertThat(buildDir.resolve("ksp-classes")).exists()
+        assertThat(buildDir.resolve("generated-resources/ksp")).exists()
+        assertThat(buildDir.resolve("ksp")).exists()
+        assertThat(buildDir.resolve("ksp-cache")).exists()
     }
 
     @Test
     fun `should detect KSP processor with correct META-INF entry`() {
-        // Given
-        val kspProcessor = createMockKspProcessorJar()
+        val kspProcessor = createMockKspProcessorJar(tempDir)
         project.artifacts = setOf(kspProcessor)
 
-        // When
         val method = KspProcessMojo::class.java.getDeclaredMethod("findKspProcessors")
         method.isAccessible = true
         @Suppress("UNCHECKED_CAST")
         val processors = method.invoke(mojo) as List<File>
 
-        // Then
         assertThat(processors).hasSize(1)
         assertThat(processors[0]).isEqualTo(kspProcessor.file)
     }
 
     @Test
     fun `should not detect regular JAR without KSP META-INF entry`() {
-        // Given
-        val regularJar = createRegularJar()
+        val regularJar = createRegularJar(tempDir)
         project.artifacts = setOf(regularJar)
 
-        // When
         val method = KspProcessMojo::class.java.getDeclaredMethod("findKspProcessors")
         method.isAccessible = true
         @Suppress("UNCHECKED_CAST")
         val processors = method.invoke(mojo) as List<File>
 
-        // Then
         assertThat(processors).isEmpty()
     }
 
     @Test
     fun `should skip execution when no KSP processors found`() {
-        // Given - no processors in dependencies
         project.artifacts = emptySet()
 
-        // When/Then - should not throw exception
+        mojo.execute()
+    }
+
+    @Test
+    fun `should run KSP processing`() {
+        val kspProcessor = createMockKspProcessorJar(tempDir)
+        project.artifacts = setOf(kspProcessor)
+        createSourceFile(project)
+        whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.OK)
+
         mojo.execute()
     }
 
     @Test
     fun `should throw exception when KSP plugin JAR not found`() {
-        // Given
-        val kspProcessor = createMockKspProcessorJar()
-        project.artifacts = setOf(kspProcessor) // Missing KSP plugin JARs
+        val kspProcessor = createMockKspProcessorJar(tempDir)
+        project.artifacts = setOf(kspProcessor)
+        createSourceFile(project)
+        whenever(processing.execute()).thenThrow(RuntimeException("Expected exception"))
 
-        // Create source files
-        val srcDir = File(project.build.sourceDirectory)
-        srcDir.mkdirs()
-        srcDir.resolve("Test.kt").writeText("class Test")
-
-        // When/Then
         assertThatThrownBy { mojo.execute() }
             .isInstanceOf(MojoExecutionException::class.java)
-            .hasMessageContaining("KSP plugin JAR not found")
+            .hasMessageContaining("Failed to execute KotlinSymbolProcessing")
     }
 
     @Test
-    fun `should collect Kotlin source files from source directory`() {
-        // Given
-        val srcDir = File(project.build.sourceDirectory)
-        srcDir.mkdirs()
-        srcDir.resolve("Test1.kt").writeText("class Test1")
+    fun `should handle KSP processing error exit code`() {
+        val kspProcessor = createMockKspProcessorJar(tempDir)
+        project.artifacts = setOf(kspProcessor)
+        createSourceFile(project)
+        whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.PROCESSING_ERROR)
 
-        val subDir = srcDir.resolve("sub")
-        subDir.mkdirs()
-        subDir.resolve("Test2.kt").writeText("class Test2")
-
-        // Also create non-Kotlin file
-        srcDir.resolve("README.md").writeText("# Test")
-
-        setPrivateField("sourceDirectory", srcDir)
-
-        // When
-        val method = KspProcessMojo::class.java.getDeclaredMethod("collectSourceFiles")
-        method.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val sources = method.invoke(mojo) as List<File>
-
-        // Then
-        assertThat(sources).hasSize(2)
-        assertThat(sources.map { it.name }).containsExactlyInAnyOrder("Test1.kt", "Test2.kt")
+        assertThatThrownBy { mojo.execute() }
+            .isInstanceOf(MojoFailureException::class.java)
+            .hasMessageContaining("KotlinSymbolProcessing failed with exit code")
     }
 
     @Test
-    fun `should build compiler arguments with all required options`() {
-        // Given
-        val kspProcessor = createMockKspProcessorJar()
-        val kspPlugin = createKspPluginJar()
-//        val kspApi = createKspApiJar()
-        project.artifacts = setOf(kspProcessor, kspPlugin)
+    fun `should continue when ignoreProcessingErrors is true and processing fails`() {
+        configureMojo(mojo = mojo, project = project, ignoreProcessingErrors = true)
+        val kspProcessor = createMockKspProcessorJar(tempDir)
+        project.artifacts = setOf(kspProcessor)
+        createSourceFile(project)
+        whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.PROCESSING_ERROR)
 
-        setPrivateField("incremental", true)
-        setPrivateField("apOptions", mutableMapOf("option1" to "value1", "option2" to "value2"))
-
-        val processors = listOf(kspProcessor.file)
-
-        // When
-        val method =
-            KspProcessMojo::class.java.getDeclaredMethod(
-                "buildCompilerArgs",
-                MutableList::class.java,
-            )
-        method.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val args = method.invoke(mojo, processors) as List<String>
-
-        // Then
-        assertThat(args).contains("-Xplugin=${kspPlugin.file.absolutePath}")
-//        assertThat(args).contains("-Xplugin=${kspApi.file.absolutePath}")
-        assertThat(args).contains("-Xallow-no-source-files")
-        assertThat(args).contains("-module-name")
-        assertThat(args).contains("test-project")
-        assertThat(args).contains("-jvm-target")
-        assertThat(args).contains("11")
-
-        // Check KSP plugin options
-        assertThat(args.joinToString(" "))
-            .contains("plugin:com.google.devtools.ksp.symbol-processing:apclasspath=")
-        assertThat(args.joinToString(" "))
-            .contains("plugin:com.google.devtools.ksp.symbol-processing:incremental=true")
-        assertThat(args.joinToString(" "))
-            .contains("plugin:com.google.devtools.ksp.symbol-processing:apoption=option1=value1")
-        assertThat(args.joinToString(" "))
-            .contains("plugin:com.google.devtools.ksp.symbol-processing:apoption=option2=value2")
+        mojo.execute()
     }
 
-    // Helper methods to create mock JARs
-
-    private fun createMockKspProcessorJar(): Artifact {
-        val jarFile = tempDir.resolve("test-processor.jar").toFile()
-        JarOutputStream(jarFile.outputStream()).use { jos ->
-            // Add KSP processor service entry
-            val entry =
-                JarEntry(
-                    "META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider",
-                )
-            jos.putNextEntry(entry)
-            jos.write("com.example.TestProcessor".toByteArray())
-            jos.closeEntry()
-        }
-
-        return createArtifact("com.example", "test-processor", "1.0.0", jarFile)
-    }
-
-    private fun createKspPluginJar(): Artifact {
-        val jarFile = tempDir.resolve("symbol-processing-aa-embeddable.jar").toFile()
-        JarOutputStream(jarFile.outputStream()).use { jos ->
-            val entry = JarEntry("META-INF/MANIFEST.MF")
-            jos.putNextEntry(entry)
-            jos.write("Manifest-Version: 1.0\n".toByteArray())
-            jos.closeEntry()
-        }
-
-        return createArtifact(
-            "com.google.devtools.ksp",
-            "symbol-processing-aa-embeddable",
-            "2.3.2",
-            jarFile,
+    @Test
+    fun `should add all generated sources and resources to project when configured`() {
+        val javaOutputDir = tempDir.resolve("java-output").toFile()
+        configureMojo(
+            mojo = mojo,
+            project = project,
+            javaOutputDir = javaOutputDir,
+            addGeneratedSourcesToCompile = true,
         )
+
+        val kspProcessor = createMockKspProcessorJar(tempDir)
+        project.artifacts = setOf(kspProcessor)
+        createSourceFile(project)
+
+        val kotlinOutputDir = buildDir.resolve("generated-sources/ksp")
+        kotlinOutputDir.mkdirs()
+        kotlinOutputDir.resolve("Generated.kt").writeText("class Generated")
+
+        javaOutputDir.mkdirs()
+        javaOutputDir.resolve("Generated.java").writeText("public class Generated {}")
+
+        val resourceOutputDir = buildDir.resolve("generated-resources/ksp")
+        resourceOutputDir.mkdirs()
+        resourceOutputDir.resolve("generated.txt").writeText("Generated resource")
+
+        whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.OK)
+
+        mojo.execute()
+
+        assertThat(project.compileSourceRoots)
+            .contains(kotlinOutputDir.absolutePath)
+            .contains(javaOutputDir.absolutePath)
+        assertThat(project.resources)
+            .anyMatch { it.directory == resourceOutputDir.absolutePath }
     }
 
-    private fun createKspApiJar(): Artifact {
-        val jarFile = tempDir.resolve("symbol-processing-api.jar").toFile()
-        JarOutputStream(jarFile.outputStream()).use { jos ->
-            val entry = JarEntry("META-INF/MANIFEST.MF")
-            jos.putNextEntry(entry)
-            jos.write("Manifest-Version: 1.0\n".toByteArray())
-            jos.closeEntry()
-        }
+    @Test
+    fun `should not add generated sources when addGeneratedSourcesToCompile is false`() {
+        configureMojo(mojo = mojo, project = project, addGeneratedSourcesToCompile = false)
+        val kspProcessor = createMockKspProcessorJar(tempDir)
+        project.artifacts = setOf(kspProcessor)
+        createSourceFile(project)
 
-        return createArtifact(
-            "com.google.devtools.ksp",
-            "symbol-processing-api",
-            "2.3.2",
-            jarFile,
+        val kotlinOutputDir = buildDir.resolve("generated-sources/ksp")
+        kotlinOutputDir.mkdirs()
+        kotlinOutputDir.resolve("Generated.kt").writeText("class Generated")
+        val initialCompileRootsSize = project.compileSourceRoots.size
+        whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.OK)
+
+        mojo.execute()
+
+        assertThat(project.compileSourceRoots).hasSize(initialCompileRootsSize)
+    }
+
+    @Test
+    fun `should handle debug mode with multiple processors`() {
+        configureMojo(mojo = mojo, project = project, debug = true)
+
+        val processor1 = createMockKspProcessorJar(tempDir)
+        val processor2 = tempDir.resolve("test-processor2.jar").toFile()
+        createJarWithEntries(
+            processor2,
+            mapOf(
+                "META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider" to
+                    "com.example.TestProcessor2".toByteArray(),
+            ),
         )
-    }
-
-    private fun createRegularJar(): Artifact {
-        val jarFile = tempDir.resolve("regular-library.jar").toFile()
-        JarOutputStream(jarFile.outputStream()).use { jos ->
-            val entry = JarEntry("META-INF/MANIFEST.MF")
-            jos.putNextEntry(entry)
-            jos.write("Manifest-Version: 1.0\n".toByteArray())
-            jos.closeEntry()
-        }
-
-        return createArtifact("com.example", "regular-lib", "1.0.0", jarFile)
-    }
-
-    private fun createArtifact(
-        groupId: String,
-        artifactId: String,
-        version: String,
-        file: File,
-    ): Artifact {
-        val artifact =
-            DefaultArtifact(
-                groupId,
-                artifactId,
-                version,
-                "compile",
-                "jar",
-                null,
-                DefaultArtifactHandler("jar"),
+        val artifact2 =
+            KspMojoTestHelpers.createArtifact(
+                "com.example",
+                "test-processor2",
+                "1.0.0",
+                processor2,
             )
-        artifact.file = file
-        return artifact
+
+        project.artifacts = setOf(processor1, artifact2)
+        createSourceFile(project)
+        whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.OK)
+
+        mojo.execute()
     }
 }

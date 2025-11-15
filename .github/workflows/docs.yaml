@@ -31,15 +31,12 @@ jobs:
           cache: maven
 
       - name: Generate Dokka Site
-        run: |-
-          mvn clean dokka:dokka -pl !reports && \
-          mkdir -p target/docs && \
-          cp -R core/target/dokka target/docs/api
+        run: make site
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: target/docs/
+          path: target/site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
