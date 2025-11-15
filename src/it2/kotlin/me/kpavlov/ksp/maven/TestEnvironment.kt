@@ -7,17 +7,18 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 object TestEnvironment {
-
     val projectDir: String = System.getProperty("user.dir")
     val testProjectsDir: Path = setupTestDirectory()
 
     private fun setupTestDirectory(): Path {
         // Create test projects under target/it
-        val dir = Paths.get(
-            projectDir,
-            "target", "it",
-            currentTimeString()
-        )
+        val dir =
+            Paths.get(
+                projectDir,
+                "target",
+                "it",
+                currentTimeString(),
+            )
         Files.createDirectories(dir)
         return dir
     }

@@ -13,7 +13,6 @@ import java.io.File
  */
 @Disabled
 class KspProcessMojoIT {
-
     companion object {
         private lateinit var localRepoPath: String
         private lateinit var testProjectsDir: File
@@ -27,7 +26,7 @@ class KspProcessMojoIT {
 
             require(testProjectsDir.exists()) {
                 "Test projects directory not found at ${testProjectsDir.absolutePath}. " +
-                        "Make sure maven-resources-plugin has copied test projects."
+                    "Make sure maven-resources-plugin has copied test projects."
             }
         }
     }
@@ -51,9 +50,10 @@ class KspProcessMojoIT {
         verifier.verifyTextInLog("BUILD SUCCESS")
 
         // Verify generated file exists
-        val generatedFile = projectDir.resolve(
-            "target/generated-sources/ksp/com/example/TestClassGreeting.kt"
-        )
+        val generatedFile =
+            projectDir.resolve(
+                "target/generated-sources/ksp/com/example/TestClassGreeting.kt",
+            )
         assertThat(generatedFile)
             .exists()
             .isFile()

@@ -21,7 +21,6 @@ import java.util.jar.JarOutputStream
  */
 @Disabled
 class KspProcessMojoTest {
-
     @TempDir
     lateinit var tempDir: Path
 
@@ -48,7 +47,7 @@ class KspProcessMojoTest {
                 <artifactId>test-project</artifactId>
                 <version>1.0</version>
             </project>
-        """.trimIndent()
+            """.trimIndent(),
         )
 
         // Set up build directory
@@ -83,7 +82,10 @@ class KspProcessMojoTest {
         setPrivateField("addGeneratedSourcesToCompile", true)
     }
 
-    private fun setPrivateField(fieldName: String, value: Any) {
+    private fun setPrivateField(
+        fieldName: String,
+        value: Any,
+    ) {
         val field = KspProcessMojo::class.java.getDeclaredField(fieldName)
         field.isAccessible = true
         field.set(mojo, value)
@@ -231,10 +233,11 @@ class KspProcessMojoTest {
         val processors = listOf(kspProcessor.file)
 
         // When
-        val method = KspProcessMojo::class.java.getDeclaredMethod(
-            "buildCompilerArgs",
-            MutableList::class.java
-        )
+        val method =
+            KspProcessMojo::class.java.getDeclaredMethod(
+                "buildCompilerArgs",
+                MutableList::class.java,
+            )
         method.isAccessible = true
         @Suppress("UNCHECKED_CAST")
         val args = method.invoke(mojo, processors) as List<String>
@@ -266,7 +269,9 @@ class KspProcessMojoTest {
         JarOutputStream(jarFile.outputStream()).use { jos ->
             // Add KSP processor service entry
             val entry =
-                JarEntry("META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider")
+                JarEntry(
+                    "META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider",
+                )
             jos.putNextEntry(entry)
             jos.write("com.example.TestProcessor".toByteArray())
             jos.closeEntry()
@@ -288,7 +293,7 @@ class KspProcessMojoTest {
             "com.google.devtools.ksp",
             "symbol-processing-aa-embeddable",
             "2.3.2",
-            jarFile
+            jarFile,
         )
     }
 
@@ -305,7 +310,7 @@ class KspProcessMojoTest {
             "com.google.devtools.ksp",
             "symbol-processing-api",
             "2.3.2",
-            jarFile
+            jarFile,
         )
     }
 
@@ -325,17 +330,18 @@ class KspProcessMojoTest {
         groupId: String,
         artifactId: String,
         version: String,
-        file: File
+        file: File,
     ): Artifact {
-        val artifact = DefaultArtifact(
-            groupId,
-            artifactId,
-            version,
-            "compile",
-            "jar",
-            null,
-            DefaultArtifactHandler("jar")
-        )
+        val artifact =
+            DefaultArtifact(
+                groupId,
+                artifactId,
+                version,
+                "compile",
+                "jar",
+                null,
+                DefaultArtifactHandler("jar"),
+            )
         artifact.file = file
         return artifact
     }

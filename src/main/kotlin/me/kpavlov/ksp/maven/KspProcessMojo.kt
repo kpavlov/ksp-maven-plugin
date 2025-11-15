@@ -23,7 +23,7 @@ import java.io.IOException
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.*
+import java.util.ServiceLoader
 import java.util.jar.JarFile
 import java.util.stream.Collectors
 
@@ -36,7 +36,7 @@ import java.util.stream.Collectors
     name = "process",
     defaultPhase = LifecyclePhase.GENERATE_SOURCES,
     requiresDependencyResolution = ResolutionScope.COMPILE,
-    threadSafe = true
+    threadSafe = true,
 )
 class KspProcessMojo : AbstractMojo() {
     @Parameter(defaultValue = $$"${project}", readonly = true, required = true)
@@ -150,39 +150,40 @@ class KspProcessMojo : AbstractMojo() {
     @Parameter(defaultValue = "2.2.21")
     private lateinit var kotlinVersion: String
 
-    private val kspLogger = object : KSPLogger {
-        override fun error(
-            message: String,
-            symbol: KSNode?
-        ) {
-            log.error("$message: $symbol")
-        }
+    private val kspLogger =
+        object : KSPLogger {
+            override fun error(
+                message: String,
+                symbol: KSNode?,
+            ) {
+                log.error("$message: $symbol")
+            }
 
-        override fun exception(e: Throwable) {
-            log.error(e.message, e)
-        }
+            override fun exception(e: Throwable) {
+                log.error(e.message, e)
+            }
 
-        override fun info(
-            message: String,
-            symbol: KSNode?
-        ) {
-            log.info("$message: $symbol")
-        }
+            override fun info(
+                message: String,
+                symbol: KSNode?,
+            ) {
+                log.info("$message: $symbol")
+            }
 
-        override fun logging(
-            message: String,
-            symbol: KSNode?
-        ) {
-            log.info("$message: $symbol")
-        }
+            override fun logging(
+                message: String,
+                symbol: KSNode?,
+            ) {
+                log.info("$message: $symbol")
+            }
 
-        override fun warn(
-            message: String,
-            symbol: KSNode?
-        ) {
-            log.warn("$message: $symbol")
+            override fun warn(
+                message: String,
+                symbol: KSNode?,
+            ) {
+                log.warn("$message: $symbol")
+            }
         }
-    }
 
     @Throws(MojoExecutionException::class, MojoFailureException::class)
     override fun execute() {
@@ -204,10 +205,12 @@ class KspProcessMojo : AbstractMojo() {
         log.info("Found ${processorJars.size} KSP processor(s)")
         if (debug && processorJars.isNotEmpty()) {
             log.info(
-                "${processorJars.size} KSP processor(s):\n" + processorJars.joinToString(
-                    prefix = " - ",
-                    separator = "\n - "
-                ) { it.name })
+                "${processorJars.size} KSP processor(s):\n" +
+                    processorJars.joinToString(
+                        prefix = " - ",
+                        separator = "\n - ",
+                    ) { it.name },
+            )
         }
 
         log.info("Calling KSP processing")
@@ -215,10 +218,10 @@ class KspProcessMojo : AbstractMojo() {
         log.info("End KSP processing")
 
         // Build command arguments
-        //val args = buildCompilerArgs(processorJars)
+        // val args = buildCompilerArgs(processorJars)
 
         // Execute kotlinc
-        //executeKotlinCompiler(args)
+        // executeKotlinCompiler(args)
 
         // Add generated sources to project
         if (addGeneratedSourcesToCompile) {
@@ -233,48 +236,53 @@ class KspProcessMojo : AbstractMojo() {
 
         log.info("Processor Classloader: $processorClassloader")
 
-        val processorProviders = ServiceLoader
-            .load(SymbolProcessorProvider::class.java)
-            .toList()
+        val processorProviders =
+            ServiceLoader
+                .load(SymbolProcessorProvider::class.java)
+                .toList()
 
         log.info("Processor processorProviders: $processorProviders")
 
         // https://github.com/google/ksp/blob/main/docs/ksp2cmdline.md
-        val kspConfig = KSPJvmConfig(
-            javaSourceRoots = emptyList(),
-            javaOutputDir = javaOutputDir,
-            jdkHome = File(System.getProperty("java.home")),
-            jvmTarget = jvmTarget,
-            jvmDefaultMode = "disable",
-            moduleName = moduleName,
-            sourceRoots = listOf(sourceDirectory),
-            commonSourceRoots = emptyList(),
-            libraries = project.compileClasspathElements.map { File(it) },
-            friends = emptyList(),
-            processorOptions = apOptions,
-            projectBaseDir = project.basedir,
-            outputBaseDir = File(project.build.outputDirectory),
-            cachesDir = cachesDir,
-            classOutputDir = classOutputDir,
-            kotlinOutputDir = kotlinOutputDir,
-            resourceOutputDir = resourceOutputDir,
-            incremental = true,
-            incrementalLog = true,
-            modifiedSources = emptyList(),
-            removedSources = emptyList(),
-            changedClasses = emptyList(),
-            languageVersion = "2.2",
-            apiVersion = "2.2",
-            allWarningsAsErrors = true,
-            mapAnnotationArgumentsInJava = true
-        )
+        val kspConfig =
+            KSPJvmConfig(
+                javaSourceRoots = emptyList(),
+                javaOutputDir = javaOutputDir,
+                jdkHome = File(System.getProperty("java.home")),
+                jvmTarget = jvmTarget,
+                jvmDefaultMode = "disable",
+                moduleName = moduleName,
+                sourceRoots = listOf(sourceDirectory),
+                commonSourceRoots = emptyList(),
+                libraries = project.compileClasspathElements.map { File(it) },
+                friends = emptyList(),
+                processorOptions = apOptions,
+                projectBaseDir = project.basedir,
+                outputBaseDir = File(project.build.outputDirectory),
+                cachesDir = cachesDir,
+                classOutputDir = classOutputDir,
+                kotlinOutputDir = kotlinOutputDir,
+                resourceOutputDir = resourceOutputDir,
+                incremental = true,
+                incrementalLog = true,
+                modifiedSources = emptyList(),
+                removedSources = emptyList(),
+                changedClasses = emptyList(),
+                languageVersion = "2.2",
+                apiVersion = "2.2",
+                allWarningsAsErrors = true,
+                mapAnnotationArgumentsInJava = true,
+            )
 
-        log.info("Calling KSP processing with config: ${ToStringBuilder.reflectionToString(kspConfig)}")
-        val exitCode = KotlinSymbolProcessing(
-            kspConfig = kspConfig,
-            symbolProcessorProviders = processorProviders,
-            logger = kspLogger
-        ).execute()
+        log.info(
+            "Calling KSP processing with config: ${ToStringBuilder.reflectionToString(kspConfig)}",
+        )
+        val exitCode =
+            KotlinSymbolProcessing(
+                kspConfig = kspConfig,
+                symbolProcessorProviders = processorProviders,
+                logger = kspLogger,
+            ).execute()
 
         if (exitCode != KotlinSymbolProcessing.ExitCode.OK) {
             log.error("Failed to process KSP processor(s): $exitCode")
@@ -313,9 +321,10 @@ class KspProcessMojo : AbstractMojo() {
         // Check if the JAR contains META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider
         try {
             val jarFile = JarFile(jar)
-            val entry = jarFile.getJarEntry(
-                "META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider"
-            )
+            val entry =
+                jarFile.getJarEntry(
+                    "META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider",
+                )
             jarFile.close()
             return entry != null
         } catch (_: IOException) {
@@ -333,7 +342,7 @@ class KspProcessMojo : AbstractMojo() {
 
         if (kspPluginJar == null) {
             throw MojoExecutionException(
-                "KSP plugin JAR not found. Add dependency: com.google.devtools.ksp:ssymbol-processing-aa-embeddable:$kspVersion"
+                "KSP plugin JAR not found. Add dependency: com.google.devtools.ksp:ssymbol-processing-aa-embeddable:$kspVersion",
             )
         }
 
@@ -358,9 +367,11 @@ class KspProcessMojo : AbstractMojo() {
         val pluginPrefix = "plugin:$KSP_PLUGIN_ID:"
 
         // Processor classpath
-        val apClasspath = processorJars.stream()
-            .map { obj: File? -> obj!!.absolutePath }
-            .collect(Collectors.joining(File.pathSeparator))
+        val apClasspath =
+            processorJars
+                .stream()
+                .map { obj: File? -> obj!!.absolutePath }
+                .collect(Collectors.joining(File.pathSeparator))
         args.add("-P")
         args.add(pluginPrefix + "apclasspath=" + apClasspath)
 
@@ -417,7 +428,10 @@ class KspProcessMojo : AbstractMojo() {
         return args
     }
 
-    private fun findDependency(groupId: String, artifactId: String): File? {
+    private fun findDependency(
+        groupId: String,
+        artifactId: String,
+    ): File? {
         for (artifact in project.artifacts) {
             if (artifact.groupId == groupId &&
                 artifact.artifactId == artifactId
@@ -429,10 +443,12 @@ class KspProcessMojo : AbstractMojo() {
     }
 
     private val classpath: String
-        get() = project.artifacts.stream()
-            .filter { a: Artifact? -> a!!.file != null && a.file.exists() }
-            .map { a: Artifact? -> a!!.file.absolutePath }
-            .collect(Collectors.joining(File.pathSeparator))
+        get() =
+            project.artifacts
+                .stream()
+                .filter { a: Artifact? -> a!!.file != null && a.file.exists() }
+                .map { a: Artifact? -> a!!.file.absolutePath }
+                .collect(Collectors.joining(File.pathSeparator))
 
     @Throws(MojoExecutionException::class)
     private fun collectSourceFiles(): MutableList<File> {
@@ -463,9 +479,13 @@ class KspProcessMojo : AbstractMojo() {
     }
 
     @Throws(MojoExecutionException::class)
-    private fun collectKotlinFiles(dir: File, files: MutableList<File>) {
+    private fun collectKotlinFiles(
+        dir: File,
+        files: MutableList<File>,
+    ) {
         try {
-            Files.walk(dir.toPath())
+            Files
+                .walk(dir.toPath())
                 .filter { path: Path? -> Files.isRegularFile(path) }
                 .filter { p: Path? -> p.toString().endsWith(".kt") }
                 .map { p: Path? -> p!!.toFile() }
@@ -495,10 +515,11 @@ class KspProcessMojo : AbstractMojo() {
             val argsArray = args.toTypedArray<String>()
 
             // Execute compilation
-            val exitCode: ExitCode = compiler.exec(
-                System.err,
-                *argsArray
-            )
+            val exitCode: ExitCode =
+                compiler.exec(
+                    System.err,
+                    *argsArray,
+                )
 
             if (exitCode != ExitCode.OK) {
                 throw MojoExecutionException("KSP processing failed with exit code: $exitCode")

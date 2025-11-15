@@ -5,7 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class GeneratedCodeTest {
-
     @Test
     fun `generated greeting class should exist and work`() {
         // Verify the generated class exists and can be instantiated

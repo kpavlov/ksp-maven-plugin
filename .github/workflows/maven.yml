@@ -31,7 +31,7 @@ jobs:
       - name: Build with Maven
         run: |
           mvn -B verify site install && \
-          cd test-projects/simple-project && \
+          cd sample-project && \
           mvn -B test
 
       - name: Publish Test Report

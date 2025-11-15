@@ -5,4 +5,6 @@ package me.kpavlov.ksp.maven.testprocessor
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.SOURCE)
-annotation class GenerateHello(val name: String = "World")
+annotation class GenerateHello(
+    val name: String = "World",
+)

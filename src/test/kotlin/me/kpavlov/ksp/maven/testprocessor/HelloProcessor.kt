@@ -15,9 +15,8 @@ import com.google.devtools.ksp.validate
  */
 class HelloProcessor(
     private val codeGenerator: CodeGenerator,
-    private val logger: KSPLogger
+    private val logger: KSPLogger,
 ) : SymbolProcessor {
-
     override fun process(resolver: Resolver): List<KSAnnotated> {
         logger.warn("=== HelloProcessor.process() called ===")
         logger.warn("Looking for annotation: ${GenerateHello::class.qualifiedName}")
@@ -46,24 +45,29 @@ class HelloProcessor(
         val generatedClassName = "${className}Greeting"
 
         // Get annotation parameter
-        val annotation = classDeclaration.annotations.first {
-            it.shortName.asString() == "GenerateHello"
-        }
-        val name = annotation.arguments
-            .firstOrNull { it.name?.asString() == "name" }
-            ?.value?.toString() ?: "World"
+        val annotation =
+            classDeclaration.annotations.first {
+                it.shortName.asString() == "GenerateHello"
+            }
+        val name =
+            annotation.arguments
+                .firstOrNull { it.name?.asString() == "name" }
+                ?.value
+                ?.toString() ?: "World"
 
         logger.info("Generating $generatedClassName for $className with name=$name")
 
         // Generate the greeting class
-        val file = codeGenerator.createNewFile(
-            dependencies = Dependencies(true, classDeclaration.containingFile!!),
-            packageName = packageName,
-            fileName = generatedClassName
-        )
+        val file =
+            codeGenerator.createNewFile(
+                dependencies = Dependencies(true, classDeclaration.containingFile!!),
+                packageName = packageName,
+                fileName = generatedClassName,
+            )
 
         file.bufferedWriter().use { writer ->
-            writer.write("""
+            writer.write(
+                """
                 package $packageName
 
                 /**
@@ -76,7 +80,8 @@ class HelloProcessor(
                         const val GENERATED_FOR = "$className"
                     }
                 }
-            """.trimIndent())
+                """.trimIndent(),
+            )
         }
     }
 }

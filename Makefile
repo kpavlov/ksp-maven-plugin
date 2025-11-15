@@ -1,10 +1,10 @@
 .PHONY: build
 build:
-	@mvn clean install && \
-		(cd test-projects/simple-project && mvn test -X)
+	@mvn clean verify install && \
+		(cd sample-project && mvn test)
 
-build2:
-	  mvn clean verify dokka:dokka site
+site:
+	  mvn dokka:dokka site
 
 apidocs:
 	  mvn clean dokka:dokka -pl !reports && \

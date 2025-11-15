@@ -8,7 +8,6 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
  * Provider for HelloProcessor
  */
 class HelloProcessorProvider : SymbolProcessorProvider {
-    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        return HelloProcessor(environment.codeGenerator, environment.logger)
-    }
+    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor =
+        HelloProcessor(environment.codeGenerator, environment.logger)
 }
