@@ -9,7 +9,7 @@
     <properties>
         <kotlin.version>2.2.21</kotlin.version>
         <maven.compiler.release>11</maven.compiler.release>
-        <ksp.plugin.version>0.1.0</ksp.plugin.version>
+        <ksp.plugin.version>0.1.1</ksp.plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -41,10 +41,6 @@
                 <groupId>me.kpavlov.ksp.maven</groupId>
                 <artifactId>ksp-maven-plugin</artifactId>
                 <version>${ksp.plugin.version}</version>
-                <configuration>
-                    <!-- Be verbose -->
-                    <debug>true</debug>
-                </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>me.kpavlov.ksp.maven</groupId>
