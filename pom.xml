@@ -4,7 +4,7 @@
 
     <groupId>me.kpavlov.ksp.maven</groupId>
     <artifactId>ksp-maven-plugin</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>KSP Maven Plugin</name>
@@ -34,7 +34,7 @@
     <scm>
         <connection>scm:git:git://github.com/kpavlov/ksp-maven-plugin.git</connection>
         <developerConnection>scm:git:ssh://github.com/kpavlov/ksp-maven-plugin.git</developerConnection>
-        <tag>v0.1.0</tag>
+        <tag>HEAD</tag>
         <url>https://github.com/kpavlov/ksp-maven-plugin/tree/main</url>
     </scm>
 
