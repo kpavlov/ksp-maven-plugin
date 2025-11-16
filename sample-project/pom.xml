@@ -9,7 +9,7 @@
     <properties>
         <kotlin.version>2.2.21</kotlin.version>
         <maven.compiler.release>11</maven.compiler.release>
-        <plugin.version>0.1.1-SNAPSHOT</plugin.version>
+        <ksp.plugin.version>0.1.0</ksp.plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -22,7 +22,7 @@
         <dependency>
             <groupId>me.kpavlov.ksp.maven</groupId>
             <artifactId>ksp-maven-plugin</artifactId>
-            <version>${plugin.version}</version>
+            <version>${ksp.plugin.version}</version>
             <classifier>tests</classifier>
         </dependency>
 
@@ -35,44 +35,21 @@
         </dependency>
     </dependencies>
 
-    <repositories>
-        <repository>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>local-repo</id>
-            <url>${basedir}/../target/local-repo/</url>
-        </repository>
-        <repository>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-    </repositories>
-
     <build>
         <plugins>
             <plugin>
                 <groupId>me.kpavlov.ksp.maven</groupId>
                 <artifactId>ksp-maven-plugin</artifactId>
-                <version>${plugin.version}</version>
+                <version>${ksp.plugin.version}</version>
                 <configuration>
+                    <!-- Be verbose -->
                     <debug>true</debug>
-                    <ignoreProcessingErrors>false</ignoreProcessingErrors>
                 </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>me.kpavlov.ksp.maven</groupId>
                         <artifactId>ksp-maven-plugin</artifactId>
-                        <version>${plugin.version}</version>
+                        <version>${ksp.plugin.version}</version>
                         <classifier>tests</classifier>
                     </dependency>
                 </dependencies>

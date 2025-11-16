@@ -4,6 +4,7 @@ import com.google.devtools.ksp.impl.KotlinSymbolProcessing
 import com.google.devtools.ksp.processing.KSPJvmConfig
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import org.apache.commons.lang3.builder.ToStringBuilder
+import org.apache.commons.lang3.builder.ToStringStyle
 import org.apache.maven.model.Resource
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugin.MojoExecutionException
@@ -15,9 +16,8 @@ import org.apache.maven.plugins.annotations.ResolutionScope
 import org.apache.maven.project.MavenProject
 import java.io.File
 import java.io.IOException
-import java.net.URLClassLoader
 import java.nio.file.Files
-import java.util.*
+import java.util.ServiceLoader
 import java.util.jar.JarFile
 
 /**
@@ -184,7 +184,7 @@ class KspProcessMojo(
 
         logProcessorsFound(processorJars)
 
-        executeKsp(processorJars)
+        executeKsp()
 
         if (addGeneratedSourcesToCompile) {
             addGeneratedSources()
@@ -204,33 +204,18 @@ class KspProcessMojo(
         }
     }
 
-    private fun executeKsp(processorJars: List<File>) {
-        val processorClassloader = createProcessorClassLoader(processorJars)
+    private fun executeKsp() {
         val processorProviders = loadProcessorProviders()
         val kspConfig = createKspConfig()
 
         executeProcessing(kspConfig, processorProviders)
     }
 
-    private fun createProcessorClassLoader(processorJars: List<File>): URLClassLoader {
-        if (debug) {
-            log.info("Preparing processor Classloader")
-        }
-
-        val classLoader = URLClassLoader(processorJars.map { it.toURI().toURL() }.toTypedArray())
-
-        if (debug) {
-            log.info("Processor Classloader: $classLoader")
-        }
-
-        return classLoader
-    }
-
     private fun loadProcessorProviders(): List<SymbolProcessorProvider> {
         val providers = ServiceLoader.load(SymbolProcessorProvider::class.java).toList()
 
         if (debug && providers.isNotEmpty()) {
-            log.info("Processor providers: $providers")
+            log.info("Processor providers: ${providers.map { it::class.qualifiedName }}")
         }
 
         return providers
@@ -270,9 +255,7 @@ class KspProcessMojo(
         if (debug) {
             log.info(
                 "Calling KSP processing with config: ${
-                    ToStringBuilder.reflectionToString(
-                        config
-                    )
+                    ToStringBuilder.reflectionToString(config, ToStringStyle.MULTI_LINE_STYLE)
                 }"
             )
         }

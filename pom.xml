@@ -17,6 +17,7 @@
             <name>Konstantin Pavlov</name>
             <email>mail@kpavlov.me</email>
             <url>https://kpavlov.me</url>
+            <organization>JetBrains</organization>
             <roles>
                 <role>author</role>
                 <role>developer</role>
@@ -26,7 +27,7 @@
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://raw.githubusercontent.com/kpavlov/ksp-maven-plugin/refs/heads/main/LICENSE.txt</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
@@ -37,6 +38,11 @@
         <tag>HEAD</tag>
         <url>https://github.com/kpavlov/ksp-maven-plugin/tree/main</url>
     </scm>
+
+    <issueManagement>
+        <system>github</system>
+        <url>https://github.com/kpavlov/ksp-maven-plugin/issues</url>
+    </issueManagement>
 
     <properties>
         <java.version>11</java.version>

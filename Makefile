@@ -1,7 +1,13 @@
+PROJECT_VERSION := $(shell grep -m1 '<version>' pom.xml | sed -e 's/.*<version>\(.*\)<\/version>.*/\1/')
+
 .PHONY: build
 build:
+	@echo "ℹ️🔢 Project version: $(PROJECT_VERSION)"
+	@echo "👷 Building and installing project..."
 	@mvn clean verify install && \
-		(cd sample-project && mvn test)
+		echo "🧩 Testing with sample project" && \
+		(cd sample-project && mvn -Dksp.plugin.version=$(PROJECT_VERSION) test) && \
+		echo "✅ Done"
 
 .PHONY: site
 site:apidocs
@@ -32,8 +38,18 @@ prepare:
 .PHONY:all
 all: format lint build
 
-.PHONY:
+.PHONY:ci
 ci:
-		mvn -Dgpg.skip=true verify site -P release && \
+	@echo "ℹ️🔢 Project version: $(PROJECT_VERSION)"
+	@echo "👷 Building project..."
+	@mvn -Dgpg.skip=true verify site -P release && \
+		echo "🚚📦 Installing..." && \
 		mvn install -DskipTests && \
-		(cd sample-project && mvn test)
+		echo "🧩 Testing with sample project" && \
+		(cd sample-project && mvn -Dksp.plugin.version=$(PROJECT_VERSION) test) && \
+		echo "✅ Done"
+
+.PHONY:sample
+sample:
+	@echo "🖼️ Building sample project"
+	@(cd sample-project && mvn test)

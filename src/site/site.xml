@@ -1,0 +1,22 @@
+<site xmlns="http://maven.apache.org/SITE/2.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://maven.apache.org/SITE/2.0.0 https://maven.apache.org/xsd/site-2.0.0.xsd">
+    <bannerLeft name="KSP Maven Plugin">
+    </bannerLeft>
+  <body>
+    <head/>
+    <menu name="Overview">
+      <item name="Home" href="index.html"/>
+      <item name="Kotlin Symbol Processing (KSP)" href="https://kotlinlang.org/docs/ksp-overview.html" target="_blank"/>
+      <item name="API Documentation" href="api/" />
+    </menu>
+    <!-- include all standard report menus configured by plugins -->
+    <menu ref="reports"/>
+    <footer>&amp;copy; 2025 Konstantin Pavlov</footer>
+  </body>
+  <skin>
+    <groupId>org.apache.maven.skins</groupId>
+    <artifactId>maven-fluido-skin</artifactId>
+    <version>2.1.0</version>
+  </skin>
+  <!-- Header & Footer (Fluido skin custom section) -->
+</site>
