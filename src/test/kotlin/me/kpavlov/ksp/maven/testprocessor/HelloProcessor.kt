@@ -17,6 +17,14 @@ class HelloProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
 ) : SymbolProcessor {
+    override fun finish() {
+        logger.info("=== HelloProcessor finished ===")
+    }
+
+    override fun onError() {
+        logger.error("=== HelloProcessor errored ===")
+    }
+
     override fun process(resolver: Resolver): List<KSAnnotated> {
         logger.warn("=== HelloProcessor.process() called ===")
         logger.warn("Looking for annotation: ${GenerateHello::class.qualifiedName}")

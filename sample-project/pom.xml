@@ -8,7 +8,6 @@
 
     <properties>
         <kotlin.version>2.2.21</kotlin.version>
-        <ksp.version>2.3.2</ksp.version>
         <maven.compiler.release>11</maven.compiler.release>
         <plugin.version>0.1.0-SNAPSHOT</plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -25,7 +24,6 @@
             <artifactId>ksp-maven-plugin</artifactId>
             <version>${plugin.version}</version>
             <classifier>tests</classifier>
-            <!--            <classifier>maven-plugin</classifier>-->
         </dependency>
 
         <!-- Test dependencies -->
@@ -67,14 +65,10 @@
                 <artifactId>ksp-maven-plugin</artifactId>
                 <version>${plugin.version}</version>
                 <configuration>
-                    <debug>false</debug>
+                    <debug>true</debug>
+                    <ignoreProcessingErrors>false</ignoreProcessingErrors>
                 </configuration>
                 <dependencies>
-                    <dependency>
-                        <groupId>de.jensklingenberg.ktorfit</groupId>
-                        <artifactId>ktorfit-lib</artifactId>
-                        <version>2.6.4</version>
-                    </dependency>
                     <dependency>
                         <groupId>me.kpavlov.ksp.maven</groupId>
                         <artifactId>ksp-maven-plugin</artifactId>
