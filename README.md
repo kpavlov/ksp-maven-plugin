@@ -1,5 +1,6 @@
 # KSP Maven Plugin
 
+[![Maven Central](https://img.shields.io/maven-central/v/me.kpavlov.ksp.maven/ksp-maven-plugin)](https://central.sonatype.com/artifact/me.kpavlov.ksp.maven/ksp-maven-plugin/)
 [![Kotlin CI with Maven](https://github.com/kpavlov/ksp-maven-plugin/actions/workflows/maven.yml/badge.svg)](https://github.com/kpavlov/ksp-maven-plugin/actions/workflows/maven.yml)
 [![Api Docs](https://img.shields.io/badge/api-docs-blue)](https://kpavlov.github.io/ksp-maven-plugin/api/)
 ![GitHub License](https://img.shields.io/github/license/kpavlov/ksp-maven-plugin)
@@ -10,13 +11,13 @@ A Maven plugin for running Kotlin Symbol Processing (KSP) on JVM projects.
 
 ## Overview
 
-This plugin integrates KSP (Kotlin Symbol Processing) into Maven builds, allowing you to process Kotlin source files with annotation processors that use the KSP API.
+This plugin integrates [KSP (Kotlin Symbol Processing)](https://kotlinlang.org/docs/ksp-overview.html) into Maven builds, allowing you to process Kotlin source files with annotation processors that use the [KSP API](https://github.com/google/ksp/blob/main/docs/ksp2.md).
 
 ## Requirements
 
 - Maven 3.6.0 or higher
 - JDK 11 or higher
-- Kotlin 2.2.21 or compatible version
+- Kotlin 2.2.21 or a compatible version
 
 ## Configuration
 

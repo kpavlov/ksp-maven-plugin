@@ -9,7 +9,7 @@
     <properties>
         <kotlin.version>2.2.21</kotlin.version>
         <maven.compiler.release>11</maven.compiler.release>
-        <plugin.version>0.1.0-SNAPSHOT</plugin.version>
+        <plugin.version>0.1.1-SNAPSHOT</plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
