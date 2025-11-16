@@ -10,6 +10,7 @@
 
     <name>KSP Maven Plugin</name>
     <description>Maven plugin for Kotlin Symbol Processing (KSP)</description>
+    <url>https://github.com/kpavlov/ksp-maven-plugin</url>
 
     <developers>
         <developer>
@@ -475,7 +476,7 @@
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
-                            <autoPublish>true</autoPublish>
+                            <autoPublish>false</autoPublish>
                             <waitUntil>validated</waitUntil>
                         </configuration>
                     </plugin>
