@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>me.kpavlov.ksp.maven</groupId>
     <artifactId>ksp-maven-plugin</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <packaging>maven-plugin</packaging>
 
     <name>KSP Maven Plugin</name>
@@ -35,7 +34,7 @@
     <scm>
         <connection>scm:git:git://github.com/kpavlov/ksp-maven-plugin.git</connection>
         <developerConnection>scm:git:ssh://github.com/kpavlov/ksp-maven-plugin.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.1.0</tag>
         <url>https://github.com/kpavlov/ksp-maven-plugin/tree/main</url>
     </scm>
 
@@ -269,17 +268,17 @@
                         <!-- optional: limit format enforcement to just the files changed by this feature branch -->
                         <ratchetFrom>origin/main</ratchetFrom>
                         <java>
-                            <palantirJavaFormat/>
+                            <palantirJavaFormat />
                         </java>
                         <kotlin>
-                            <ktlint/>
+                            <ktlint />
                         </kotlin>
                         <markdown>
                             <includes>
                                 <!-- You have to set the target manually -->
                                 <include>**/*.md</include>
                             </includes>
-                            <flexmark/>
+                            <flexmark />
                         </markdown>
                         <pom>
                             <includes>
