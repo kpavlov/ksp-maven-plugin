@@ -2,7 +2,6 @@ package me.kpavlov.ksp.maven
 
 import com.google.devtools.ksp.impl.KotlinSymbolProcessing
 import com.google.devtools.ksp.processing.KSPConfig
-import com.google.devtools.ksp.processing.KSPJvmConfig
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import me.kpavlov.ksp.maven.KspMojoTestHelpers.configureMojo
 import me.kpavlov.ksp.maven.KspMojoTestHelpers.createJarWithEntries

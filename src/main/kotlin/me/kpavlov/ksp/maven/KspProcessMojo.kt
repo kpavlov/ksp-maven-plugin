@@ -5,10 +5,12 @@ import com.google.devtools.ksp.processing.KSPJvmConfig
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
+import org.apache.maven.artifact.Artifact
 import org.apache.maven.model.Resource
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugin.MojoExecutionException
 import org.apache.maven.plugin.MojoFailureException
+import org.apache.maven.plugin.descriptor.PluginDescriptor
 import org.apache.maven.plugins.annotations.LifecyclePhase
 import org.apache.maven.plugins.annotations.Mojo
 import org.apache.maven.plugins.annotations.Parameter
@@ -42,6 +44,9 @@ class KspProcessMojo(
         private const val KSP_SERVICE_FILE =
             "META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider"
     }
+
+    @Parameter(defaultValue = $$"${plugin}", readonly = true)
+    private var pluginDescriptor: PluginDescriptor? = null
 
     @Parameter(defaultValue = $$"${project}", readonly = true, required = true)
     private lateinit var project: MavenProject
@@ -337,13 +342,19 @@ class KspProcessMojo(
         }
     }
 
-    private fun findKspProcessors(): List<File> =
-        project.artifacts
-            .mapNotNull { artifact ->
-                artifact.file?.takeIf { it.exists() && isKspProcessor(it) }?.also {
-                    log.debug("Found KSP processor: ${artifact.artifactId}")
-                }
+    private fun findKspProcessors(): List<File> {
+        val pluginProcessors = pluginDescriptor?.artifacts?.let { findProcessorsInArtifacts(it) } ?: emptyList()
+        val projectProcessors = findProcessorsInArtifacts(project.artifacts)
+
+        return pluginProcessors + projectProcessors
+    }
+
+    private fun findProcessorsInArtifacts(artifacts: Collection<Artifact>): List<File> =
+        artifacts.mapNotNull { artifact ->
+            artifact.file?.takeIf { it.exists() && isKspProcessor(it) }?.also {
+                log.debug("Found KSP processor: ${artifact.artifactId}")
             }
+        }
 
     private fun isKspProcessor(jar: File): Boolean =
         runCatching {
