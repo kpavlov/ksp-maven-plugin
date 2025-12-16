@@ -49,7 +49,7 @@
         <kotlin.code.style>official</kotlin.code.style>
         <kotlin.compiler.jvmTarget>${java.version}</kotlin.compiler.jvmTarget>
         <kotlin.version>2.3.0</kotlin.version>
-        <ksp.version>2.3.3</ksp.version>
+        <ksp.version>2.3.4</ksp.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.version>3.9.11</maven.version>
