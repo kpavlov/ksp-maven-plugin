@@ -21,11 +21,26 @@ Check out the [blog post.](https://kpavlov.me/blog/ksp-maven-plugin/)
 - JDK 11 or higher
 - Kotlin 2.2.21 or a compatible version
 
+## Features
+
+- **Dual Scope Processing**: Separate goals for main sources (`process`) and test sources (`process-test`)
+- **Thread Safe**: Fully supports Maven parallel builds (`mvn -T`)
+- **Scope-Aware Logging**: Distinct log prefixes for main (`[ksp:main]`) and test (`[ksp:test]`) processing
+- **Incremental Compilation**: Optional incremental processing support
+- **Flexible Configuration**: Extensive configuration options for all KSP parameters
+
+## Goals
+
+The plugin provides two goals:
+
+- **`process`**: Processes main sources in the `generate-sources` phase
+- **`process-test`**: Processes test sources in the `generate-test-sources` phase
+
 ## Configuration
 
 ### Basic Configuration
 
-Minimal setup with a custom KSP processor:
+Minimal setup for processing **main sources only**:
 
 ```xml
 <build>
@@ -67,6 +82,69 @@ Minimal setup with a custom KSP processor:
         </plugin>
     </plugins>
     <sourceDirectory>src/main/kotlin</sourceDirectory>
+</build>
+```
+
+### Processing Both Main and Test Sources
+
+To process both main and test sources (recommended):
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>me.kpavlov.ksp.maven</groupId>
+            <artifactId>ksp-maven-plugin</artifactId>
+            <version>[LATEST VERSION]</version>
+            <executions>
+                <execution>
+                    <id>process-main-sources</id>
+                    <goals>
+                        <goal>process</goal>
+                    </goals>
+                    <phase>generate-sources</phase>
+                </execution>
+                <execution>
+                    <id>process-test-sources</id>
+                    <goals>
+                        <goal>process-test</goal>
+                    </goals>
+                    <phase>generate-test-sources</phase>
+                </execution>
+            </executions>
+            <dependencies>
+                <dependency>
+                    <groupId>com.example</groupId>
+                    <artifactId>my-ksp-processor</artifactId>
+                    <version>1.0.0</version>
+                </dependency>
+            </dependencies>
+        </plugin>
+
+        <plugin>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-plugin</artifactId>
+            <version>2.2.21</version>
+            <executions>
+                <execution>
+                    <id>compile</id>
+                    <goals>
+                        <goal>compile</goal>
+                    </goals>
+                    <phase>compile</phase>
+                </execution>
+                <execution>
+                    <id>test-compile</id>
+                    <goals>
+                        <goal>test-compile</goal>
+                    </goals>
+                    <phase>test-compile</phase>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+    <sourceDirectory>src/main/kotlin</sourceDirectory>
+    <testSourceDirectory>src/test/kotlin</testSourceDirectory>
 </build>
 ```
 
@@ -170,17 +248,65 @@ All available configuration options:
 </plugin>
 ```
 
+## Output Directories
+
+The plugin uses different output directories for main and test processing:
+
+### Main Sources (`process` goal)
+
+- Kotlin/Java sources: `${project.build.directory}/generated-sources/ksp`
+- Classes: `${project.build.directory}/ksp-classes`
+- Resources: `${project.build.directory}/generated-resources/ksp`
+- KSP working directory: `${project.build.directory}/ksp`
+- Cache: `${project.build.directory}/ksp-cache`
+
+### Test Sources (`process-test` goal)
+
+- Kotlin/Java sources: `${project.build.directory}/generated-test-sources/ksp`
+- Classes: `${project.build.directory}/ksp-test-classes`
+- Resources: `${project.build.directory}/generated-test-resources/ksp`
+- KSP working directory: `${project.build.directory}/ksp-test`
+- Cache: `${project.build.directory}/ksp-test-cache`
+
+All directories can be customized via configuration parameters.
+
 ## Build Phases
 
-The plugin runs in the `generate-sources` phase by default:
+The plugin integrates with Maven's standard lifecycle phases:
 
-1. KSP processors run and generate code
-2. Generated sources are automatically added to the compilation source roots (when `addGeneratedSourcesToCompile` is `true`)
-3. The Kotlin compiler compiles both original and generated sources
+### Main Processing
+
+1. `generate-sources` phase: KSP processors run on main sources
+2. Generated sources automatically added to compilation source roots
+3. `compile` phase: Kotlin compiler compiles both original and generated sources
+
+### Test Processing
+
+1. `generate-test-sources` phase: KSP processors run on test sources
+2. Generated test sources automatically added to test compilation source roots
+3. `test-compile` phase: Kotlin compiler compiles both original and generated test sources
+
+## Parallel Execution Support
+
+The plugin is **fully thread-safe** and supports Maven's parallel build execution:
+
+```bash
+# Build with 4 parallel threads
+mvn clean install -T 4
+
+# Build using 1 thread per CPU core
+mvn clean install -T 1C
+```
+
+Each execution creates isolated instances of `KotlinSymbolProcessing` with no shared mutable state, ensuring safe concurrent builds in multi-module projects.
+
+For detailed information about thread safety guarantees, see [PARALLEL_EXECUTION.md](PARALLEL_EXECUTION.md).
 
 ## Skipping KSP Processing
 
-Skip KSP processing via command line:
+### Skip Main Source Processing
+
+Skip main source processing via command line:
 
 ```bash
 mvn clean install -Dksp.skip=true
@@ -192,6 +318,28 @@ Or in your `pom.xml`:
 <configuration>
     <skip>true</skip>
 </configuration>
+```
+
+### Skip Test Source Processing
+
+Skip test source processing via command line:
+
+```bash
+mvn clean test -Dksp.skipTest=true
+```
+
+Or in your `pom.xml` for the `process-test` execution:
+
+```xml
+<execution>
+    <id>process-test-sources</id>
+    <goals>
+        <goal>process-test</goal>
+    </goals>
+    <configuration>
+        <skipTest>true</skipTest>
+    </configuration>
+</execution>
 ```
 
 ## Troubleshooting
@@ -236,6 +384,10 @@ This will log:
 - Processor providers
 - KSP configuration
 - Incremental changes (if enabled)
+
+Log messages are prefixed with scope identifiers:
+- `[ksp:main]` for main source processing
+- `[ksp:test]` for test source processing
 
 ## Building the Plugin
 
@@ -299,3 +451,4 @@ Contributions are welcome! Please follow the Kotlin coding conventions and ensur
 - [KSP Documentation](https://kotlinlang.org/docs/ksp-overview.html)
 - [KSP Command Line Reference](https://kotlinlang.org/docs/ksp-command-line.html)
 - [Kotlin Maven Plugin](https://kotlinlang.org/docs/maven.html)
+

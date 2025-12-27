@@ -6,15 +6,11 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import org.apache.maven.artifact.Artifact
-import org.apache.maven.model.Resource
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugin.MojoExecutionException
 import org.apache.maven.plugin.MojoFailureException
 import org.apache.maven.plugin.descriptor.PluginDescriptor
-import org.apache.maven.plugins.annotations.LifecyclePhase
-import org.apache.maven.plugins.annotations.Mojo
 import org.apache.maven.plugins.annotations.Parameter
-import org.apache.maven.plugins.annotations.ResolutionScope
 import org.apache.maven.project.MavenProject
 import java.io.File
 import java.io.IOException
@@ -22,40 +18,35 @@ import java.nio.file.Files
 import java.util.ServiceLoader
 import java.util.jar.JarFile
 
-/**
- * Mojo for running Kotlin Symbol Processing (KSP) on JVM sources.
- *
- * This plugin discovers KSP processors from project dependencies and executes them
- * to generate source code, resources, and other artifacts.
- *
- * @author Konstantin Pavlov
- */
-@Mojo(
-    name = "process",
-    defaultPhase = LifecyclePhase.GENERATE_SOURCES,
-    requiresDependencyResolution = ResolutionScope.COMPILE,
-    threadSafe = true,
-)
-class KspProcessMojo(
-    private val kspFactory: KspFactory = DefaultKspFactory,
-) : AbstractMojo() {
-
+@Suppress("TooManyFunctions")
+abstract class AbstractKspProcessMojo : AbstractMojo() {
     companion object {
         private const val KSP_SERVICE_FILE =
             "META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider"
     }
 
-    @Parameter(defaultValue = $$"${plugin}", readonly = true)
-    private var pluginDescriptor: PluginDescriptor? = null
-
-    @Parameter(defaultValue = $$"${project}", readonly = true, required = true)
-    private lateinit var project: MavenProject
+    /**
+     * Processing scope (MAIN or TEST) - must be initialized by subclasses
+     */
+    protected abstract val scope: ProcessingScope
 
     /**
-     * Source directories to process
+     * Factory for creating KSP instances. Can be overridden for testing.
+     * Each invocation creates a new isolated instance.
      */
-    @Parameter(defaultValue = $$"${project.build.sourceDirectory}")
-    private lateinit var sourceDirectory: File
+    protected open val kspFactory: KspFactory = DefaultKspFactory
+
+    @Parameter(defaultValue = "\${plugin}", readonly = true)
+    private var pluginDescriptor: PluginDescriptor? = null
+
+    @Parameter(defaultValue = "\${project}", readonly = true, required = true)
+    protected lateinit var project: MavenProject
+
+    /**
+     * Source directory to process
+     */
+    @Parameter
+    private var sourceDirectory: File? = null
 
     /**
      * Additional source directories
@@ -66,38 +57,38 @@ class KspProcessMojo(
     /**
      * Output directory for generated Kotlin sources
      */
-    @Parameter(defaultValue = $$"${project.build.directory}/generated-sources/ksp")
-    private lateinit var kotlinOutputDir: File
+    @Parameter
+    private var kotlinOutputDir: File? = null
 
     /**
      * Output directory for generated Java sources
      */
-    @Parameter(defaultValue = $$"${project.build.directory}/generated-sources/ksp")
-    private lateinit var javaOutputDir: File
+    @Parameter
+    private var javaOutputDir: File? = null
 
     /**
      * Output directory for compiled classes
      */
-    @Parameter(defaultValue = $$"${project.build.directory}/ksp-classes")
-    private lateinit var classOutputDir: File
+    @Parameter
+    private var classOutputDir: File? = null
 
     /**
      * Output directory for resources
      */
-    @Parameter(defaultValue = $$"${project.build.directory}/generated-resources/ksp")
-    private lateinit var resourceOutputDir: File
+    @Parameter
+    private var resourceOutputDir: File? = null
 
     /**
      * KSP output directory
      */
-    @Parameter(defaultValue = $$"${project.build.directory}/ksp")
-    private lateinit var kspOutputDir: File
+    @Parameter
+    private var kspOutputDir: File? = null
 
     /**
      * Cache directory for incremental processing
      */
-    @Parameter(defaultValue = $$"${project.build.directory}/ksp-cache")
-    private lateinit var cachesDir: File
+    @Parameter
+    private var cachesDir: File? = null
 
     /**
      * Enable incremental processing
@@ -138,7 +129,7 @@ class KspProcessMojo(
      * Enable debug output
      */
     @Parameter(defaultValue = "false")
-    private val debug = false
+    protected val debug = false
 
     /**
      * KSP processor options (key-value pairs)
@@ -149,7 +140,7 @@ class KspProcessMojo(
     /**
      * Module name
      */
-    @Parameter(defaultValue = $$"${project.artifactId}")
+    @Parameter(defaultValue = "\${project.artifactId}")
     private lateinit var moduleName: String
 
     /**
@@ -159,23 +150,28 @@ class KspProcessMojo(
     private lateinit var jvmTarget: String
 
     /**
-     * Skip KSP processing
-     */
-    @Parameter(property = "ksp.skip", defaultValue = "false")
-    private val skip = false
-
-    /**
      * Add generated sources to compilation
      */
     @Parameter(defaultValue = "true")
     private val addGeneratedSourcesToCompile = true
 
-    private val kspLogger = KspLogger(log = log)
+    /**
+     * Returns true if processing should be skipped.
+     */
+    protected abstract fun isSkip(): Boolean
 
     @Throws(MojoExecutionException::class, MojoFailureException::class)
     override fun execute() {
-        if (skip) {
-            log.info("Skipping KSP processing")
+        if (isSkip()) {
+            log.info("Skipping KSP processing ($scope scope)")
+            return
+        }
+
+        val actualSourceDirectory = getActualSourceDirectory()
+        if (!actualSourceDirectory.exists()) {
+            log.info(
+                "Source directory does not exist, skipping KSP processing: $actualSourceDirectory",
+            )
             return
         }
 
@@ -196,8 +192,29 @@ class KspProcessMojo(
         }
     }
 
+    private fun getActualSourceDirectory(): File =
+        sourceDirectory ?: scope.getSourceDirectory(project)
+
+    private fun getActualKotlinOutputDir(): File =
+        kotlinOutputDir ?: scope.getDefaultKotlinOutputDir(project.build.directory)
+
+    private fun getActualJavaOutputDir(): File =
+        javaOutputDir ?: scope.getDefaultJavaOutputDir(project.build.directory)
+
+    private fun getActualClassOutputDir(): File =
+        classOutputDir ?: scope.getDefaultClassOutputDir(project.build.directory)
+
+    private fun getActualResourceOutputDir(): File =
+        resourceOutputDir ?: scope.getDefaultResourceOutputDir(project.build.directory)
+
+    private fun getActualKspOutputDir(): File =
+        kspOutputDir ?: scope.getDefaultKspOutputDir(project.build.directory)
+
+    private fun getActualCachesDir(): File =
+        cachesDir ?: scope.getDefaultCachesDir(project.build.directory)
+
     private fun logProcessorsFound(processorJars: List<File>) {
-        log.info("Found ${processorJars.size} KSP processor(s)")
+        log.info("Found ${processorJars.size} KSP processor(s) for $scope sources")
         if (debug) {
             val processorList =
                 processorJars.joinToString(
@@ -217,7 +234,15 @@ class KspProcessMojo(
     }
 
     private fun loadProcessorProviders(): List<SymbolProcessorProvider> {
-        val providers = ServiceLoader.load(SymbolProcessorProvider::class.java).toList()
+        // Create a new ServiceLoader instance for each execution to ensure thread safety
+        // and proper isolation in parallel builds
+        val classLoader = Thread.currentThread().contextClassLoader
+        val providers =
+            ServiceLoader
+                .load(
+                    SymbolProcessorProvider::class.java,
+                    classLoader,
+                ).toList()
 
         if (debug && providers.isNotEmpty()) {
             log.info("Processor providers: ${providers.map { it::class.qualifiedName }}")
@@ -230,22 +255,22 @@ class KspProcessMojo(
         val config =
             KSPJvmConfig(
                 javaSourceRoots = sourceDirs ?: emptyList(),
-                javaOutputDir = javaOutputDir,
+                javaOutputDir = getActualJavaOutputDir(),
                 jdkHome = File(System.getProperty("java.home")),
                 jvmTarget = jvmTarget,
                 jvmDefaultMode = jvmDefaultMode,
                 moduleName = moduleName,
-                sourceRoots = listOf(sourceDirectory),
+                sourceRoots = listOf(getActualSourceDirectory()),
                 commonSourceRoots = emptyList(),
-                libraries = project.compileClasspathElements.map(::File),
+                libraries = scope.getClasspathElements(project).map(::File),
                 friends = emptyList(),
                 processorOptions = apOptions,
                 projectBaseDir = project.basedir,
                 outputBaseDir = File(project.build.outputDirectory),
-                cachesDir = cachesDir,
-                classOutputDir = classOutputDir,
-                kotlinOutputDir = kotlinOutputDir,
-                resourceOutputDir = resourceOutputDir,
+                cachesDir = getActualCachesDir(),
+                classOutputDir = getActualClassOutputDir(),
+                kotlinOutputDir = getActualKotlinOutputDir(),
+                resourceOutputDir = getActualResourceOutputDir(),
                 incremental = incremental,
                 incrementalLog = incrementalLog,
                 modifiedSources = mutableListOf(),
@@ -261,7 +286,7 @@ class KspProcessMojo(
             log.info(
                 "Calling KSP processing with config: ${
                     ToStringBuilder.reflectionToString(config, ToStringStyle.MULTI_LINE_STYLE)
-                }"
+                }",
             )
         }
 
@@ -272,16 +297,25 @@ class KspProcessMojo(
         kspConfig: KSPJvmConfig,
         processorProviders: List<SymbolProcessorProvider>,
     ) {
-        try {
-            val processing =
+        // Create a new KotlinSymbolProcessing instance for each execution
+        // to ensure complete isolation in parallel builds
+        val processing =
+            try {
                 kspFactory.create(
                     kspConfig = kspConfig,
                     symbolProcessorProviders = processorProviders,
-                    logger = kspLogger,
+                    logger = KspLogger(log = log, scope = scope),
                 )
+            } catch (ex: Exception) {
+                log.error("Failed to create KotlinSymbolProcessing instance", ex)
+                throw MojoExecutionException(
+                    "Failed to create KotlinSymbolProcessing instance: ${ex.message}",
+                    ex,
+                )
+            }
 
+        try {
             val exitCode = processing.execute()
-
             logIncrementalChanges(kspConfig)
             handleExecutionResult(exitCode)
         } catch (ex: MojoFailureException) {
@@ -326,14 +360,15 @@ class KspProcessMojo(
     }
 
     private fun createDirectories() {
-        val directories = listOf(
-            kotlinOutputDir,
-            javaOutputDir,
-            classOutputDir,
-            resourceOutputDir,
-            kspOutputDir,
-            cachesDir
-        )
+        val directories =
+            listOf(
+                getActualKotlinOutputDir(),
+                getActualJavaOutputDir(),
+                getActualClassOutputDir(),
+                getActualResourceOutputDir(),
+                getActualKspOutputDir(),
+                getActualCachesDir(),
+            )
 
         try {
             directories.forEach { Files.createDirectories(it.toPath()) }
@@ -343,7 +378,8 @@ class KspProcessMojo(
     }
 
     private fun findKspProcessors(): List<File> {
-        val pluginProcessors = pluginDescriptor?.artifacts?.let { findProcessorsInArtifacts(it) } ?: emptyList()
+        val pluginProcessors =
+            pluginDescriptor?.artifacts?.let { findProcessorsInArtifacts(it) } ?: emptyList()
         val projectProcessors = findProcessorsInArtifacts(project.artifacts)
 
         return pluginProcessors + projectProcessors
@@ -370,34 +406,42 @@ class KspProcessMojo(
     }
 
     private fun addKotlinSources() {
+        val kotlinOutputDir = getActualKotlinOutputDir()
         if (!kotlinOutputDir.exists()) return
 
         if (debug) {
             log.info("Adding generated Kotlin sources: $kotlinOutputDir")
         }
-        project.addCompileSourceRoot(kotlinOutputDir.absolutePath)
+
+        scope.addCompileSourceRoot(project, kotlinOutputDir.absolutePath)
     }
 
     private fun addJavaSources() {
+        val javaOutputDir = getActualJavaOutputDir()
+        val kotlinOutputDir = getActualKotlinOutputDir()
+
         if (!javaOutputDir.exists() || javaOutputDir == kotlinOutputDir) return
 
         if (debug) {
             log.info("Adding generated Java sources: $javaOutputDir")
         }
-        project.addCompileSourceRoot(javaOutputDir.absolutePath)
+
+        scope.addCompileSourceRoot(project, javaOutputDir.absolutePath)
     }
 
     private fun addResources() {
+        val resourceOutputDir = getActualResourceOutputDir()
         if (!resourceOutputDir.exists()) return
 
         if (debug) {
             log.info("Adding generated resources: $resourceOutputDir")
         }
 
-        project.addResource(
-            Resource().apply {
+        val resource =
+            org.apache.maven.model.Resource().apply {
                 directory = resourceOutputDir.absolutePath
-            },
-        )
+            }
+
+        scope.addResource(project, resource)
     }
 }

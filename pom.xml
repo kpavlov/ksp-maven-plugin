@@ -4,13 +4,20 @@
 
     <groupId>me.kpavlov.ksp.maven</groupId>
     <artifactId>ksp-maven-plugin</artifactId>
-    <version>0.1.4-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>KSP Maven Plugin</name>
     <description>Maven plugin for Kotlin Symbol Processing (KSP)</description>
     <url>https://github.com/kpavlov/ksp-maven-plugin</url>
 
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>https://raw.githubusercontent.com/kpavlov/ksp-maven-plugin/refs/heads/main/LICENSE.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
     <developers>
         <developer>
             <id>kpavlov</id>
@@ -24,13 +31,6 @@
             </roles>
         </developer>
     </developers>
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>https://raw.githubusercontent.com/kpavlov/ksp-maven-plugin/refs/heads/main/LICENSE.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
 
     <scm>
         <connection>scm:git:git://github.com/kpavlov/ksp-maven-plugin.git</connection>
@@ -274,17 +274,17 @@
                         <!-- optional: limit format enforcement to just the files changed by this feature branch -->
                         <ratchetFrom>origin/main</ratchetFrom>
                         <java>
-                            <palantirJavaFormat />
+                            <palantirJavaFormat/>
                         </java>
                         <kotlin>
-                            <ktlint />
+                            <ktlint/>
                         </kotlin>
                         <markdown>
                             <includes>
                                 <!-- You have to set the target manually -->
                                 <include>**/*.md</include>
                             </includes>
-                            <flexmark />
+                            <flexmark/>
                         </markdown>
                         <pom>
                             <includes>
@@ -364,6 +364,11 @@
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <version>2.3.0</version>
                 <extensions>true</extensions>
+                <configuration>
+                    <languageVersion>2.2</languageVersion>
+                    <apiVersion>2.2</apiVersion>
+                    <javaParameters>true</javaParameters>
+                </configuration>
                 <executions>
                     <execution>
                         <id>compile</id>

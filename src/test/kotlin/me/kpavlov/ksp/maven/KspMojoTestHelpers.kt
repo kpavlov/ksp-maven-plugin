@@ -19,8 +19,9 @@ object KspMojoTestHelpers {
      * This mimics how Maven would configure the plugin, but uses reflection
      * to set fields directly since we're in a test environment.
      */
+    @Suppress("CyclomaticComplexMethod", "LongParameterList")
     fun configureMojo(
-        mojo: KspProcessMojo,
+        mojo: AbstractKspProcessMojo,
         project: MavenProject,
         sourceDirectory: File? = null,
         sourceDirs: List<File>? = null,
@@ -46,42 +47,79 @@ object KspMojoTestHelpers {
         addGeneratedSourcesToCompile: Boolean? = null,
     ) {
         // Set the project
-        setField(mojo, "project", project)
+        setFieldInHierarchy(mojo, "project", project)
 
         // Set all other parameters
-        sourceDirectory?.let { setField(mojo, "sourceDirectory", it) }
-        sourceDirs?.let { setField(mojo, "sourceDirs", it.toMutableList()) }
-        kotlinOutputDir?.let { setField(mojo, "kotlinOutputDir", it) }
-        javaOutputDir?.let { setField(mojo, "javaOutputDir", it) }
-        classOutputDir?.let { setField(mojo, "classOutputDir", it) }
-        resourceOutputDir?.let { setField(mojo, "resourceOutputDir", it) }
-        kspOutputDir?.let { setField(mojo, "kspOutputDir", it) }
-        cachesDir?.let { setField(mojo, "cachesDir", it) }
-        incremental?.let { setField(mojo, "incremental", it) }
-        incrementalLog?.let { setField(mojo, "incrementalLog", it) }
-        jvmDefaultMode?.let { setField(mojo, "jvmDefaultMode", it) }
-        languageVersion?.let { setField(mojo, "languageVersion", it) }
-        apiVersion?.let { setField(mojo, "apiVersion", it) }
-        ignoreProcessingErrors?.let { setField(mojo, "ignoreProcessingErrors", it) }
-        allWarningsAsErrors?.let { setField(mojo, "allWarningsAsErrors", it) }
-        mapAnnotationArgumentsInJava?.let { setField(mojo, "mapAnnotationArgumentsInJava", it) }
-        debug?.let { setField(mojo, "debug", it) }
-        apOptions?.let { setField(mojo, "apOptions", it.toMutableMap()) }
-        moduleName?.let { setField(mojo, "moduleName", it) }
-        jvmTarget?.let { setField(mojo, "jvmTarget", it) }
-        skip?.let { setField(mojo, "skip", it) }
-        addGeneratedSourcesToCompile?.let { setField(mojo, "addGeneratedSourcesToCompile", it) }
+        sourceDirectory?.let { setFieldInHierarchy(mojo, "sourceDirectory", it) }
+        sourceDirs?.let { setFieldInHierarchy(mojo, "sourceDirs", it.toMutableList()) }
+        kotlinOutputDir?.let { setFieldInHierarchy(mojo, "kotlinOutputDir", it) }
+        javaOutputDir?.let { setFieldInHierarchy(mojo, "javaOutputDir", it) }
+        classOutputDir?.let { setFieldInHierarchy(mojo, "classOutputDir", it) }
+        resourceOutputDir?.let { setFieldInHierarchy(mojo, "resourceOutputDir", it) }
+        kspOutputDir?.let { setFieldInHierarchy(mojo, "kspOutputDir", it) }
+        cachesDir?.let { setFieldInHierarchy(mojo, "cachesDir", it) }
+        incremental?.let { setFieldInHierarchy(mojo, "incremental", it) }
+        incrementalLog?.let { setFieldInHierarchy(mojo, "incrementalLog", it) }
+        jvmDefaultMode?.let { setFieldInHierarchy(mojo, "jvmDefaultMode", it) }
+        languageVersion?.let { setFieldInHierarchy(mojo, "languageVersion", it) }
+        apiVersion?.let { setFieldInHierarchy(mojo, "apiVersion", it) }
+        ignoreProcessingErrors?.let { setFieldInHierarchy(mojo, "ignoreProcessingErrors", it) }
+        allWarningsAsErrors?.let { setFieldInHierarchy(mojo, "allWarningsAsErrors", it) }
+        mapAnnotationArgumentsInJava?.let {
+            setFieldInHierarchy(
+                mojo,
+                "mapAnnotationArgumentsInJava",
+                it,
+            )
+        }
+        debug?.let { setFieldInHierarchy(mojo, "debug", it) }
+        apOptions?.let { setFieldInHierarchy(mojo, "apOptions", it.toMutableMap()) }
+        moduleName?.let { setFieldInHierarchy(mojo, "moduleName", it) }
+        jvmTarget?.let { setFieldInHierarchy(mojo, "jvmTarget", it) }
+        skip?.let {
+            // Deterministically set the appropriate skip field based on mojo type
+            val skipFieldName =
+                when (mojo) {
+                    is KspProcessTestSourcesMojo -> "skipTest"
+                    is KspProcessSourcesMojo -> "skip"
+                    else -> "skip" // default for abstract mojo
+                }
+            setFieldInHierarchy(mojo, skipFieldName, it)
+        }
+        addGeneratedSourcesToCompile?.let {
+            setFieldInHierarchy(
+                mojo,
+                "addGeneratedSourcesToCompile",
+                it,
+            )
+        }
     }
 
     /**
-     * Sets a private field on the mojo using reflection.
+     * Sets a private field on the mojo using reflection, searching the class hierarchy.
      */
-    private fun setField(
-        mojo: KspProcessMojo,
+    private fun setFieldInHierarchy(
+        mojo: AbstractKspProcessMojo,
         fieldName: String,
         value: Any,
     ) {
-        val field = KspProcessMojo::class.java.getDeclaredField(fieldName)
+        var currentClass: Class<*>? = mojo::class.java
+        var field: java.lang.reflect.Field? = null
+
+        while (currentClass != null && field == null) {
+            try {
+                field = currentClass.getDeclaredField(fieldName)
+            } catch (_: NoSuchFieldException) {
+                currentClass = currentClass.superclass
+            }
+        }
+
+        if (field == null) {
+            throw NoSuchFieldException(
+                "Field $fieldName not found in ${mojo::class.java} or its superclasses",
+            )
+        }
+
         field.isAccessible = true
         field.set(mojo, value)
     }
