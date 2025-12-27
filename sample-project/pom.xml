@@ -51,9 +51,18 @@
                 </dependencies>
                 <executions>
                     <execution>
+                        <id>process-main-sources</id>
                         <goals>
                             <goal>process</goal>
                         </goals>
+                        <phase>generate-sources</phase>
+                    </execution>
+                    <execution>
+                        <id>process-test-sources</id>
+                        <goals>
+                            <goal>process-test</goal>
+                        </goals>
+                        <phase>generate-test-sources</phase>
                     </execution>
                 </executions>
             </plugin>

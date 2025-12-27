@@ -4,17 +4,17 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class GeneratedCodeTest {
+class GeneratedTestCodeTest {
     @Test
     fun `generated greeting class should exist and work`() {
         // Verify the generated class exists and can be instantiated
-        val greeting = SampleGreeting()
+        val greeting = TestSampleGreeting()
 
         // Verify the greet method works
         val message = greeting.greet()
-        assertEquals("Hello, Mega Sample!", message)
+        assertEquals("Hello, Test Sample!", message)
 
         // Verify the companion object constant
-        assertEquals("Sample", SampleGreeting.GENERATED_FOR)
+        assertEquals("TestSample", TestSampleGreeting.GENERATED_FOR)
     }
 }

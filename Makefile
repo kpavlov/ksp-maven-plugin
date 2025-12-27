@@ -6,7 +6,7 @@ build:
 	@echo "👷 Building and installing project..."
 	@mvn clean verify install && \
 		echo "🧩 Testing with sample project" && \
-		(cd sample-project && mvn -Dksp.plugin.version=$(PROJECT_VERSION) test) && \
+		(cd sample-project && mvn -T4C -Dksp.plugin.version=$(PROJECT_VERSION) clean test) && \
 		echo "✅ Done"
 
 .PHONY: site

@@ -6,9 +6,18 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.NonExistLocation
 import org.apache.maven.plugin.logging.Log
 
+/**
+ * KSP logger adapter that wraps Maven's logging with scope-aware prefixes.
+ *
+ * @param log Maven logger instance
+ * @param scope Processing scope (MAIN or TEST) for log message prefixing
+ */
 class KspLogger(
     val log: Log,
+    scope: ProcessingScope,
 ) : KSPLogger {
+    private val prefix = "[ksp:${scope.name.lowercase()}]"
+
     private fun decorateMessage(
         message: String,
         symbol: KSNode?,
@@ -22,31 +31,31 @@ class KspLogger(
         message: String,
         symbol: KSNode?,
     ) {
-        log.error("[ksp] ${decorateMessage(message, symbol)}")
+        log.error("$prefix ${decorateMessage(message, symbol)}")
     }
 
     override fun exception(e: Throwable) {
-        log.error("[ksp] ${e.message}", e)
+        log.error("$prefix ${e.message}", e)
     }
 
     override fun info(
         message: String,
         symbol: KSNode?,
     ) {
-        log.info("[ksp] ${decorateMessage(message, symbol)}")
+        log.info("$prefix ${decorateMessage(message, symbol)}")
     }
 
     override fun logging(
         message: String,
         symbol: KSNode?,
     ) {
-        log.info("[ksp] ${decorateMessage(message, symbol)}")
+        log.info("$prefix ${decorateMessage(message, symbol)}")
     }
 
     override fun warn(
         message: String,
         symbol: KSNode?,
     ) {
-        log.warn("[ksp] ${decorateMessage(message, symbol)}")
+        log.warn("$prefix ${decorateMessage(message, symbol)}")
     }
 }
