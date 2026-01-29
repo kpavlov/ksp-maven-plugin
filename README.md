@@ -97,22 +97,7 @@ To process both main and test sources (recommended):
             <groupId>me.kpavlov.ksp.maven</groupId>
             <artifactId>ksp-maven-plugin</artifactId>
             <version>[LATEST VERSION]</version>
-            <executions>
-                <execution>
-                    <id>process-main-sources</id>
-                    <goals>
-                        <goal>process</goal>
-                    </goals>
-                    <phase>generate-sources</phase>
-                </execution>
-                <execution>
-                    <id>process-test-sources</id>
-                    <goals>
-                        <goal>process-test</goal>
-                    </goals>
-                    <phase>generate-test-sources</phase>
-                </execution>
-            </executions>
+            <extensions>true</extensions>
             <dependencies>
                 <dependency>
                     <groupId>com.example</groupId>
