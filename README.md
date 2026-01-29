@@ -27,6 +27,7 @@ Check out the [blog post.](https://kpavlov.me/blog/ksp-maven-plugin/)
 - **Thread Safe**: Fully supports Maven parallel builds (`mvn -T`)
 - **Scope-Aware Logging**: Distinct log prefixes for main (`[ksp:main]`) and test (`[ksp:test]`) processing
 - **Incremental Compilation**: Optional incremental processing support
+- **Automatic Configuration**: Automatically detects Kotlin version, JVM target, and other settings from the project environment
 - **Flexible Configuration**: Extensive configuration options for all KSP parameters
 
 ## Goals
@@ -198,13 +199,13 @@ All available configuration options:
         <!-- Enable incremental compilation logging (default: false) -->
         <incrementalLog>true</incrementalLog>
 
-        <!-- Kotlin language version (default: 2.2) -->
+        <!-- Kotlin language version (default: detected from kotlin-maven-plugin or kotlin.version) -->
         <languageVersion>2.2</languageVersion>
 
-        <!-- Kotlin API version (default: 2.2) -->
+        <!-- Kotlin API version (default: detected from languageVersion) -->
         <apiVersion>2.2</apiVersion>
 
-        <!-- JVM default mode for interfaces (default: disable) -->
+        <!-- JVM default mode for interfaces (default: detected from kotlin-maven-plugin or 'disable') -->
         <jvmDefaultMode>disable</jvmDefaultMode>
 
         <!-- KSP processor options as key-value pairs (default: none) -->
@@ -225,7 +226,7 @@ All available configuration options:
         <!-- Module name (default: ${project.artifactId}) -->
         <moduleName>my-module</moduleName>
 
-        <!-- JVM target version (default: 11) -->
+        <!-- JVM target version (default: detected from kotlin-maven-plugin or maven.compiler.release) -->
         <jvmTarget>17</jvmTarget>
 
         <!-- Skip KSP processing (default: false, can be set via -Dksp.skip=true) -->
@@ -247,6 +248,28 @@ All available configuration options:
     </dependencies>
 </plugin>
 ```
+
+### Automatic Parameter Detection
+
+The plugin automatically detects many settings from the project configuration and properties:
+
+|       Parameter       |                                           Detection Source (in order of priority)                                           |
+|-----------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `languageVersion`     | `<languageVersion>` in `kotlin-maven-plugin`, `kotlin.compiler.languageVersion` property, or `kotlin.version` (major.minor) |
+| `apiVersion`          | `<apiVersion>` in `kotlin-maven-plugin`, `kotlin.compiler.apiVersion` property, or `languageVersion`                        |
+| `jvmTarget`           | `<jvmTarget>` in `kotlin-maven-plugin`, `kotlin.compiler.jvmTarget`, `maven.compiler.release`, or `maven.compiler.target`   |
+| `jdkHome`             | `<jdkHome>` in `kotlin-maven-plugin`, `kotlin.compiler.jdkHome`, or `java.home` system property                             |
+| `allWarningsAsErrors` | `<allWarningsAsErrors>` in `kotlin-maven-plugin`, or `kotlin.compiler.allWarningsAsErrors` property                         |
+
+### Property Support
+
+Many parameters can be set via command line or Maven properties:
+
+- `ksp.skip`: Skip KSP processing for main sources (`-Dksp.skip=true`)
+- `ksp.skipTest`: Skip KSP processing for test sources (`-Dksp.skipTest=true`)
+- `ksp.debug`: Enable debug output (`-Dksp.debug=true`)
+- `kotlin.compiler.languageVersion`: Set Kotlin language version
+- `kotlin.compiler.jvmTarget`: Set JVM target version
 
 ## Output Directories
 
@@ -292,10 +315,10 @@ The plugin is **fully thread-safe** and supports Maven's parallel build executio
 
 ```bash
 # Build with 4 parallel threads
-mvn clean install -T 4
+mvn clean install -T4
 
 # Build using 1 thread per CPU core
-mvn clean install -T 1C
+mvn clean install -T1C
 ```
 
 Each execution creates isolated instances of `KotlinSymbolProcessing` with no shared mutable state, ensuring safe concurrent builds in multi-module projects.

@@ -12,6 +12,7 @@ import org.apache.maven.plugin.MojoFailureException
 import org.apache.maven.plugin.descriptor.PluginDescriptor
 import org.apache.maven.plugins.annotations.Parameter
 import org.apache.maven.project.MavenProject
+import org.codehaus.plexus.util.xml.Xpp3Dom
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -99,14 +100,14 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     @Parameter(defaultValue = "false")
     private val incrementalLog: Boolean = false
 
-    @Parameter(defaultValue = "disable")
+    @Parameter(property = "kotlin.compiler.jvmDefault", defaultValue = "disable")
     private var jvmDefaultMode: String = "disable"
 
-    @Parameter(defaultValue = "2.2")
-    private lateinit var languageVersion: String
+    @Parameter(property = "kotlin.compiler.languageVersion", defaultValue = "2.2")
+    private var languageVersion: String? = null
 
-    @Parameter(defaultValue = "2.2")
-    private lateinit var apiVersion: String
+    @Parameter(property = "kotlin.compiler.apiVersion", defaultValue = "2.2")
+    private var apiVersion: String? = null
 
     /**
      * Indicates whether to ignore processing errors during the KSP (Kotlin Symbol Processing) execution.
@@ -119,8 +120,8 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     @Parameter(defaultValue = "false")
     private val ignoreProcessingErrors = false
 
-    @Parameter(defaultValue = "false")
-    private val allWarningsAsErrors = false
+    @Parameter(property = "kotlin.compiler.allWarningsAsErrors", defaultValue = "false")
+    private var allWarningsAsErrors = false
 
     @Parameter(defaultValue = "true")
     private val mapAnnotationArgumentsInJava: Boolean = true
@@ -128,7 +129,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     /**
      * Enable debug output
      */
-    @Parameter(defaultValue = "false")
+    @Parameter(property = "ksp.debug", defaultValue = "false")
     protected val debug = false
 
     /**
@@ -146,8 +147,8 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     /**
      * JVM target version
      */
-    @Parameter(defaultValue = "11")
-    private lateinit var jvmTarget: String
+    @Parameter(property = "kotlin.compiler.jvmTarget", defaultValue = "11")
+    private var jvmTarget: String? = null
 
     /**
      * Add generated sources to compilation
@@ -252,12 +253,56 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     }
 
     private fun createKspConfig(): KSPJvmConfig {
+        val kotlinConfig =
+            project.build
+                ?.pluginsAsMap
+                ?.get(
+                    "org.jetbrains.kotlin:kotlin-maven-plugin",
+                )?.configuration as? Xpp3Dom
+
+        val resolvedLanguageVersion =
+            languageVersion
+                ?: kotlinConfig?.getChild("languageVersion")?.value
+                ?: project.properties.getProperty("kotlin.compiler.languageVersion")
+                ?: project.properties.getProperty("kotlin.version")?.let { version ->
+                    val parts = version.split(".")
+                    if (parts.size >= 2) "${parts[0]}.${parts[1]}" else version
+                } ?: "2.2"
+
+        val resolvedApiVersion =
+            apiVersion
+                ?: kotlinConfig?.getChild("apiVersion")?.value
+                ?: project.properties.getProperty("kotlin.compiler.apiVersion")
+                ?: resolvedLanguageVersion
+
+        val resolvedJvmTarget =
+            jvmTarget
+                ?: kotlinConfig?.getChild("jvmTarget")?.value
+                ?: project.properties.getProperty("kotlin.compiler.jvmTarget")
+                ?: project.properties.getProperty("maven.compiler.release")
+                ?: project.properties.getProperty("maven.compiler.target")
+                ?: "11"
+
+        val resolvedJdkHome =
+            kotlinConfig?.getChild("jdkHome")?.value
+                ?: project.properties.getProperty("kotlin.compiler.jdkHome")
+                ?: System.getProperty("java.home")
+
+        val resolvedAllWarningsAsErrors =
+            allWarningsAsErrors ||
+                kotlinConfig?.getChild("allWarningsAsErrors")?.value?.toBoolean() == true ||
+                project.properties
+                    .getProperty(
+                        "kotlin.compiler.allWarningsAsErrors",
+                    )?.toBoolean() ==
+                true
+
         val config =
             KSPJvmConfig(
                 javaSourceRoots = sourceDirs ?: emptyList(),
                 javaOutputDir = getActualJavaOutputDir(),
-                jdkHome = File(System.getProperty("java.home")),
-                jvmTarget = jvmTarget,
+                jdkHome = File(resolvedJdkHome),
+                jvmTarget = resolvedJvmTarget,
                 jvmDefaultMode = jvmDefaultMode,
                 moduleName = moduleName,
                 sourceRoots = listOf(getActualSourceDirectory()),
@@ -276,9 +321,9 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
                 modifiedSources = mutableListOf(),
                 removedSources = mutableListOf(),
                 changedClasses = mutableListOf(),
-                languageVersion = languageVersion,
-                apiVersion = apiVersion,
-                allWarningsAsErrors = allWarningsAsErrors,
+                languageVersion = resolvedLanguageVersion,
+                apiVersion = resolvedApiVersion,
+                allWarningsAsErrors = resolvedAllWarningsAsErrors,
                 mapAnnotationArgumentsInJava = mapAnnotationArgumentsInJava,
             )
 

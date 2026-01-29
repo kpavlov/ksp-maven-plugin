@@ -177,10 +177,11 @@ class KspProcessTestSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessTestS
         mojo.execute()
 
         // Verify test sources are added to test compile roots
-        project.testCompileSourceRoots shouldContainAll listOf(
-            kotlinOutputDir.absolutePath,
-            javaOutputDir.absolutePath,
-        )
+        project.testCompileSourceRoots shouldContainAll
+            listOf(
+                kotlinOutputDir.absolutePath,
+                javaOutputDir.absolutePath,
+            )
 
         // Verify test resources are added
         project.testResources.any { it.directory == resourceOutputDir.absolutePath } shouldBe true
