@@ -1,13 +1,6 @@
 package me.kpavlov.ksp.maven
 
 import com.google.devtools.ksp.impl.KotlinSymbolProcessing
-import me.kpavlov.ksp.maven.KspMojoTestHelpers.configureMojo
-import me.kpavlov.ksp.maven.KspMojoTestHelpers.createJarWithEntries
-import me.kpavlov.ksp.maven.KspMojoTestHelpers.createKspApiJar
-import me.kpavlov.ksp.maven.KspMojoTestHelpers.createKspPluginJar
-import me.kpavlov.ksp.maven.KspMojoTestHelpers.createMockKspProcessorJar
-import me.kpavlov.ksp.maven.KspMojoTestHelpers.createRegularJar
-import me.kpavlov.ksp.maven.KspMojoTestHelpers.createSourceFile
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainAll
@@ -15,6 +8,13 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.file.shouldExist
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.configureMojo
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createJarWithEntries
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createKspApiJar
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createKspPluginJar
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createMockKspProcessorJar
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createRegularJar
+import me.kpavlov.ksp.maven.KspMojoTestHelpers.createSourceFile
 import org.apache.maven.plugin.MojoFailureException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -155,10 +155,11 @@ class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMo
 
         mojo.execute()
 
-        project.compileSourceRoots shouldContainAll listOf(
-            kotlinOutputDir.absolutePath,
-            javaOutputDir.absolutePath,
-        )
+        project.compileSourceRoots shouldContainAll
+            listOf(
+                kotlinOutputDir.absolutePath,
+                javaOutputDir.absolutePath,
+            )
         project.resources.any { it.directory == resourceOutputDir.absolutePath } shouldBe true
     }
 
