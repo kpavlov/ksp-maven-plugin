@@ -1,5 +1,8 @@
 # Info for AI Coding Agents
 
+skill: Kotlin architect
+skill: Java + Maven architect
+
 ## Development Guidelines
 
 - Use `git mv` command when renaming files to preserve git history, if possible
@@ -33,8 +36,8 @@
 - Avoid creating too many test methods. If multiple parameters can be tested in one scenario, go for it. Consider using parametrized tests.
 - Use function `Names with backticks` for test methods in Kotlin, e.g. "fun `should return 200 OK`()"
 - Avoid writing KDocs for tests, keep code self-documenting
-- Write Kotlin tests with [kotlin-test](https://github.com/JetBrains/kotlin/tree/master/libraries/kotlin.test),
-  [mockk](https://mockk.io/) and [Kotest-assertions](https://kotest.io/docs/assertions/assertions.html)
+- Write Kotlin tests with [Kotest-assertions](https://kotest.io/docs/assertions/assertions.html)
+  and [mockk](https://mockk.io/)
   with infix form assertions `shouldBe` instead of `assertEquals`.
 - Use Kotest's `withClue("<failure reason>")` to describe failure reasons, but only when the assertion is NOT obvious.
   Remove obvious cases for simplicity.
