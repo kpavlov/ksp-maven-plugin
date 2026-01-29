@@ -9,7 +9,7 @@
     <properties>
         <kotlin.version>2.3.0</kotlin.version>
         <maven.compiler.release>11</maven.compiler.release>
-        <ksp.plugin.version>0.2.0</ksp.plugin.version>
+        <ksp.plugin.version>0.3.0</ksp.plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
