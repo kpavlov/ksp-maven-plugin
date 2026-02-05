@@ -48,7 +48,7 @@
         <java.version>11</java.version>
         <kotlin.code.style>official</kotlin.code.style>
         <kotlin.compiler.jvmTarget>${java.version}</kotlin.compiler.jvmTarget>
-        <kotlin.version>2.3.0</kotlin.version>
+        <kotlin.version>2.3.10</kotlin.version>
         <ksp.version>2.3.5</ksp.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -374,7 +374,7 @@
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
-                <version>2.3.0</version>
+                <version>2.3.10</version>
                 <extensions>true</extensions>
                 <configuration>
                     <languageVersion>2.2</languageVersion>
