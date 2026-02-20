@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0          http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.example</groupId>
-    <artifactId>sample-project</artifactId>
+    <artifactId>arrow-optics-test</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
         <kotlin.version>2.3.10</kotlin.version>
+        <arrow.version>2.2.1.1</arrow.version>
         <maven.compiler.release>11</maven.compiler.release>
         <ksp.plugin.version>0.3.2</ksp.plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -19,11 +20,21 @@
             <artifactId>kotlin-stdlib</artifactId>
             <version>${kotlin.version}</version>
         </dependency>
+
+        <!--
+            IMPORTANT: arrow-optics MUST be a project compile dependency (not a plugin dependency).
+            The KSP processor needs to resolve the @optics annotation type from the project classpath.
+            Without this, the processor finds no annotated classes and generates nothing.
+        -->
         <dependency>
-            <groupId>me.kpavlov.ksp.maven</groupId>
-            <artifactId>ksp-maven-plugin</artifactId>
-            <version>${ksp.plugin.version}</version>
-            <classifier>tests</classifier>
+            <groupId>io.arrow-kt</groupId>
+            <artifactId>arrow-optics</artifactId>
+            <version>${arrow.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.arrow-kt</groupId>
+            <artifactId>arrow-core</artifactId>
+            <version>${arrow.version}</version>
         </dependency>
 
         <!-- Test dependencies -->
@@ -33,24 +44,45 @@
             <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
+        <sourceDirectory>src/main/kotlin</sourceDirectory>
+        <testSourceDirectory>src/test/kotlin</testSourceDirectory>
+
         <plugins>
             <plugin>
                 <groupId>me.kpavlov.ksp.maven</groupId>
                 <artifactId>ksp-maven-plugin</artifactId>
                 <version>${ksp.plugin.version}</version>
+                <!-- REQUIRED: allows plugin to register generated sources in the build lifecycle -->
                 <extensions>true</extensions>
+                <configuration>
+                    <debug>true</debug>
+                </configuration>
                 <dependencies>
+                    <!--
+                        arrow-optics-ksp-plugin is the KSP symbol processor.
+                        It MUST be a plugin dependency (not a project dependency),
+                        so that Maven's plugin classloader can discover it via ServiceLoader.
+                    -->
                     <dependency>
-                        <groupId>me.kpavlov.ksp.maven</groupId>
-                        <artifactId>ksp-maven-plugin</artifactId>
-                        <version>${ksp.plugin.version}</version>
-                        <classifier>tests</classifier>
+                        <groupId>io.arrow-kt</groupId>
+                        <artifactId>arrow-optics-ksp-plugin</artifactId>
+                        <version>${arrow.version}</version>
                     </dependency>
                 </dependencies>
+                <!-- No explicit <executions> needed: the plugin's lifecycle extension
+                     automatically binds process (main) to generate-sources and
+                     process-test (test sources) to generate-test-sources. -->
             </plugin>
+
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
@@ -72,13 +104,12 @@
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.4</version>
             </plugin>
         </plugins>
-        <sourceDirectory>src/main/kotlin</sourceDirectory>
-        <testSourceDirectory>src/test/kotlin</testSourceDirectory>
     </build>
 </project>
