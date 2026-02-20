@@ -16,6 +16,7 @@ import me.kpavlov.ksp.maven.KspMojoTestHelpers.createMockKspProcessorJar
 import me.kpavlov.ksp.maven.KspMojoTestHelpers.createRegularJar
 import me.kpavlov.ksp.maven.KspMojoTestHelpers.createSourceFile
 import org.apache.maven.plugin.MojoFailureException
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.junit.jupiter.MockitoExtension
@@ -207,5 +208,86 @@ class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMo
         whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.OK)
 
         mojo.execute()
+    }
+
+    // ── Processor filtering ──────────────────────────────────────────────────
+    // HelloProcessorProvider is registered in the test classpath via
+    // META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider
+    // FQCN: me.kpavlov.ksp.maven.testprocessor.HelloProcessorProvider
+
+    @Nested
+    inner class ProcessorFilteringTest {
+        private val helloFqcn = "me.kpavlov.ksp.maven.testprocessor.HelloProcessorProvider"
+
+        private fun setupAndExecute() {
+            val kspProcessor = createMockKspProcessorJar(tempDir)
+            project.artifacts = setOf(kspProcessor)
+            createSourceFile(project)
+            whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.OK)
+            mojo.execute()
+        }
+
+        @Test
+        fun `processorIncludes with matching pattern passes provider to factory`() {
+            configureMojo(
+                mojo = mojo,
+                project = project,
+                processorIncludes = listOf("me.kpavlov.ksp.maven.testprocessor.*"),
+            )
+
+            setupAndExecute()
+
+            val names = capturedSymbolProcessorProviders.map { it::class.qualifiedName }
+            names shouldContainAll listOf(helloFqcn)
+        }
+
+        @Test
+        fun `processorIncludes with non-matching pattern removes all providers`() {
+            configureMojo(
+                mojo = mojo,
+                project = project,
+                processorIncludes = listOf("org.unrelated.*"),
+            )
+
+            setupAndExecute()
+
+            capturedSymbolProcessorProviders.shouldBeEmpty()
+        }
+
+        @Test
+        fun `processorExcludes with matching pattern removes provider from factory call`() {
+            configureMojo(
+                mojo = mojo,
+                project = project,
+                processorExcludes = listOf(helloFqcn),
+            )
+
+            setupAndExecute()
+
+            val names = capturedSymbolProcessorProviders.map { it::class.qualifiedName }
+            names shouldBeEmpty()
+        }
+
+        @Test
+        fun `processorExcludes with non-matching pattern keeps all providers`() {
+            configureMojo(
+                mojo = mojo,
+                project = project,
+                processorExcludes = listOf("com.unrelated.*"),
+            )
+
+            setupAndExecute()
+
+            val names = capturedSymbolProcessorProviders.map { it::class.qualifiedName }
+            names shouldContainAll listOf(helloFqcn)
+        }
+
+        @Test
+        fun `no filters passes all discovered providers to factory`() {
+            setupAndExecute()
+
+            val names = capturedSymbolProcessorProviders.map { it::class.qualifiedName }
+            names shouldContainAll listOf(helloFqcn)
+        }
     }
 }

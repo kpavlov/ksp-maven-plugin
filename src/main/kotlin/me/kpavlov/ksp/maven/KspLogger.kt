@@ -12,7 +12,7 @@ import org.apache.maven.plugin.logging.Log
  * @param log Maven logger instance
  * @param scope Processing scope (MAIN or TEST) for log message prefixing
  */
-class KspLogger(
+internal class KspLogger(
     val log: Log,
     scope: ProcessingScope,
 ) : KSPLogger {

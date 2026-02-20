@@ -45,6 +45,8 @@ object KspMojoTestHelpers {
         jvmTarget: String? = null,
         skip: Boolean? = null,
         addGeneratedSourcesToCompile: Boolean? = null,
+        processorIncludes: List<String>? = null,
+        processorExcludes: List<String>? = null,
     ) {
         // Set the project
         setFieldInHierarchy(mojo, "project", project)
@@ -92,6 +94,12 @@ object KspMojoTestHelpers {
                 "addGeneratedSourcesToCompile",
                 it,
             )
+        }
+        processorIncludes?.let {
+            setFieldInHierarchy(mojo, "processorIncludes", it.toMutableList())
+        }
+        processorExcludes?.let {
+            setFieldInHierarchy(mojo, "processorExcludes", it.toMutableList())
         }
     }
 

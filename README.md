@@ -199,6 +199,24 @@ All available configuration options:
             <option2>value2</option2>
         </apOptions>
 
+        <!--
+          Glob patterns to include specific SymbolProcessorProvider classes (default: all included).
+          Use '*' for a single package segment, '**' for any depth.
+          When non-empty, only providers whose fully-qualified class name matches at least
+          one pattern are passed to KSP.
+        -->
+        <processorIncludes>
+            <processorInclude>com.example.annotation.*</processorInclude>
+        </processorIncludes>
+
+        <!--
+          Glob patterns to exclude specific SymbolProcessorProvider classes (default: none excluded).
+          Providers matching any exclude pattern are removed even if they match an include pattern.
+        -->
+        <processorExcludes>
+            <processorExclude>com.example.SlowProcessor</processorExclude>
+        </processorExcludes>
+
         <!-- Continue build on processing errors (default: false) -->
         <ignoreProcessingErrors>false</ignoreProcessingErrors>
 
@@ -232,6 +250,60 @@ All available configuration options:
         </dependency>
     </dependencies>
 </plugin>
+```
+
+### Processor Filtering
+
+KSP processors normally decide for themselves which classes to process. However, you can restrict
+which `SymbolProcessorProvider` implementations are activated using glob-style include and exclude
+patterns matched against the provider's fully-qualified class name.
+
+**Pattern syntax:**
+
+| Token | Meaning |
+|-------|---------|
+| `*`   | Any sequence of characters within a single package segment (no dots) |
+| `**`  | Any sequence of characters across package segments (including dots) |
+| `?`   | Any single non-dot character |
+| other | Matched literally |
+
+**Include/exclude semantics:**
+- When `processorIncludes` is empty, all discovered providers pass the include check.
+- A provider is retained only when it satisfies the include check **and** does not match any
+  `processorExcludes` pattern.
+- Excludes take priority: a provider that matches both an include and an exclude pattern is removed.
+
+**Example — run only one specific processor:**
+
+```xml
+<configuration>
+    <processorIncludes>
+        <processorInclude>com.example.MyProcessor</processorInclude>
+    </processorIncludes>
+</configuration>
+```
+
+**Example — exclude a slow or unwanted processor while keeping all others:**
+
+```xml
+<configuration>
+    <processorExcludes>
+        <processorExclude>com.example.SlowProcessor</processorExclude>
+    </processorExcludes>
+</configuration>
+```
+
+**Example — include a whole package but exclude one class within it:**
+
+```xml
+<configuration>
+    <processorIncludes>
+        <processorInclude>com.example.annotation.*</processorInclude>
+    </processorIncludes>
+    <processorExcludes>
+        <processorExclude>com.example.annotation.ExperimentalProcessor</processorExclude>
+    </processorExcludes>
+</configuration>
 ```
 
 ### Automatic Parameter Detection

@@ -133,6 +133,40 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     protected val debug = false
 
     /**
+     * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to include.
+     * When empty, all discovered processors are included by default.
+     *
+     * <p>Use `*` to match within a single package segment and `**` to match across segments.</p>
+     *
+     * <p>Example: include only processors from a specific package:</p>
+     * <pre>{@code
+     * <processorIncludes>
+     *   <processorInclude>com.example.annotation.*</processorInclude>
+     * </processorIncludes>
+     * }</pre>
+     *
+     * @since 0.4.0
+     */
+    @Parameter
+    private val processorIncludes: MutableList<String> = mutableListOf()
+
+    /**
+     * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to exclude.
+     * Providers matching any exclude pattern are removed even if they satisfy an include pattern.
+     *
+     * <p>Example: exclude a specific processor:</p>
+     * <pre>{@code
+     * <processorExcludes>
+     *   <processorExclude>com.example.SlowProcessor</processorExclude>
+     * </processorExcludes>
+     * }</pre>
+     *
+     * @since 0.4.0
+     */
+    @Parameter
+    private val processorExcludes: MutableList<String> = mutableListOf()
+
+    /**
      * KSP processor options (key-value pairs)
      */
     @Parameter
@@ -238,15 +272,24 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
         // Create a new ServiceLoader instance for each execution to ensure thread safety
         // and proper isolation in parallel builds
         val classLoader = Thread.currentThread().contextClassLoader
-        val providers =
+        val discovered =
             ServiceLoader
                 .load(
                     SymbolProcessorProvider::class.java,
                     classLoader,
                 ).toList()
 
+        val providers = filterProcessorProviders(discovered, processorIncludes, processorExcludes)
+
+        if (discovered.size != providers.size) {
+            log.info(
+                "KSP processor filtering: ${discovered.size} discovered, " +
+                    "${providers.size} active after applying includes/excludes filters",
+            )
+        }
+
         if (debug && providers.isNotEmpty()) {
-            log.info("Processor providers: ${providers.map { it::class.qualifiedName }}")
+            log.info("Active processor providers: ${providers.map { it::class.qualifiedName }}")
         }
 
         return providers
