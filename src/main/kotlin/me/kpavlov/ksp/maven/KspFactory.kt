@@ -10,7 +10,7 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
  * This interface allows for customization of the KSP processing pipeline,
  * primarily useful for testing purposes.
  */
-internal fun interface KspFactory {
+fun interface KspFactory {
     /**
      * Creates a new [KotlinSymbolProcessing] instance.
      *

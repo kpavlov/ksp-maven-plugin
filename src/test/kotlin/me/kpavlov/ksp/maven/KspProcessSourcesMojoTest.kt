@@ -28,7 +28,7 @@ class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMo
     override fun createMojo(): KspProcessSourcesMojo =
         object : KspProcessSourcesMojo() {
             override val kspFactory: KspFactory =
-                KspFactory { kspConfig, symbolProcessorProviders, logger ->
+                KspFactory { kspConfig, symbolProcessorProviders, _ ->
                     capturedKSPConfig = kspConfig
                     capturedSymbolProcessorProviders = symbolProcessorProviders
                     processing
@@ -265,7 +265,7 @@ class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMo
             setupAndExecute()
 
             val names = capturedSymbolProcessorProviders.map { it::class.qualifiedName }
-            names shouldBeEmpty()
+            names.shouldBeEmpty()
         }
 
         @Test

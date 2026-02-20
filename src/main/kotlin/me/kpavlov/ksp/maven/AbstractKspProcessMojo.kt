@@ -148,7 +148,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
      * @since 0.4.0
      */
     @Parameter
-    private val processorIncludes: MutableList<String> = mutableListOf()
+    private var processorIncludes: List<String> = emptyList()
 
     /**
      * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to exclude.
@@ -164,7 +164,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
      * @since 0.4.0
      */
     @Parameter
-    private val processorExcludes: MutableList<String> = mutableListOf()
+    private var processorExcludes: List<String> = emptyList()
 
     /**
      * KSP processor options (key-value pairs)
@@ -175,7 +175,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     /**
      * Module name
      */
-    @Parameter(defaultValue = "\${project.artifactId}")
+    @Parameter(defaultValue = $$"${project.artifactId}")
     private lateinit var moduleName: String
 
     /**
@@ -482,10 +482,11 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
 
     private fun isKspProcessor(jar: File): Boolean =
         runCatching {
-            JarFile(jar).use { jarFile ->
-                jarFile.getJarEntry(KSP_SERVICE_FILE) != null
-            }
-        }.getOrDefault(false)
+            JarFile(jar).use { it.getJarEntry(KSP_SERVICE_FILE) != null }
+        }.getOrElse { ex ->
+            log.warn("Could not inspect JAR ${jar.name}: ${ex.message}")
+            false
+        }
 
     private fun addGeneratedSources() {
         addKotlinSources()

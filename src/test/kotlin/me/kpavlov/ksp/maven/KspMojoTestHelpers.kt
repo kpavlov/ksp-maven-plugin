@@ -95,12 +95,8 @@ object KspMojoTestHelpers {
                 it,
             )
         }
-        processorIncludes?.let {
-            setFieldInHierarchy(mojo, "processorIncludes", it.toMutableList())
-        }
-        processorExcludes?.let {
-            setFieldInHierarchy(mojo, "processorExcludes", it.toMutableList())
-        }
+        processorIncludes?.let { setFieldInHierarchy(mojo, "processorIncludes", it) }
+        processorExcludes?.let { setFieldInHierarchy(mojo, "processorExcludes", it) }
     }
 
     /**

@@ -33,10 +33,14 @@ internal fun filterProcessorProviders(
 ): List<SymbolProcessorProvider> {
     if (includes.isEmpty() && excludes.isEmpty()) return providers
 
+    // Compile each pattern once, not once per provider × pattern
+    val includeRegexes = includes.map(::buildGlobRegex)
+    val excludeRegexes = excludes.map(::buildGlobRegex)
+
     return providers.filter { provider ->
         val className = provider::class.qualifiedName ?: return@filter false
-        val included = includes.isEmpty() || includes.any { matchesGlob(className, it) }
-        val excluded = excludes.any { matchesGlob(className, it) }
+        val included = includeRegexes.isEmpty() || includeRegexes.any { it.matches(className) }
+        val excluded = excludeRegexes.any { it.matches(className) }
         included && !excluded
     }
 }
@@ -75,8 +79,10 @@ private fun buildGlobRegex(pattern: String): Regex {
             }
 
             else -> {
-                sb.append(Regex.escape(pattern[i].toString()))
-                i++
+                // Accumulate the full contiguous literal run, then escape it in one call
+                val start = i
+                while (i < pattern.length && pattern[i] != '*' && pattern[i] != '?') i++
+                sb.append(Regex.escape(pattern.substring(start, i)))
             }
         }
     }

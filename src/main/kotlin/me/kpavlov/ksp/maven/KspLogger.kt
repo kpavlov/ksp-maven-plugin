@@ -12,8 +12,8 @@ import org.apache.maven.plugin.logging.Log
  * @param log Maven logger instance
  * @param scope Processing scope (MAIN or TEST) for log message prefixing
  */
-internal class KspLogger(
-    val log: Log,
+class KspLogger(
+    private val log: Log,
     scope: ProcessingScope,
 ) : KSPLogger {
     private val prefix = "[ksp:${scope.name.lowercase()}]"
