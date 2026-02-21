@@ -46,9 +46,9 @@ ci:
 		echo "🚚📦 Installing..." && \
 		mvn install -DskipTests && \
 		echo "🧩 Testing with sample project" && \
-		(cd sample-project && mvn -Dksp.plugin.version=$(PROJECT_VERSION) test) && \
+		(cd sample-project && mvn -Dksp.plugin.version=$(PROJECT_VERSION) clean test) && \
 		echo "🧩 Testing with arrow-optics-test" && \
-		(cd test-projects/arrow-optics && mvn -Dksp.plugin.version=$(PROJECT_VERSION) test) && \
+		(cd test-projects/arrow-optics && mvn -Dksp.plugin.version=$(PROJECT_VERSION) clean test) && \
 		echo "✅ Done"
 
 .PHONY:sample

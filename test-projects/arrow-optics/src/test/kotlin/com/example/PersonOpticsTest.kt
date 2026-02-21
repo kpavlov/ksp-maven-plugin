@@ -13,7 +13,6 @@ import kotlin.test.assertEquals
  *  3. Generated sources dir (target/generated-sources/ksp) is on the compile source path
  */
 class PersonOpticsTest {
-
     @Test
     fun `Lens modifies name`() {
         val person = Person(name = "john", age = 30, address = Address("Main St", "New York"))

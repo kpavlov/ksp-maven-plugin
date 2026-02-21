@@ -37,10 +37,10 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
      */
     protected open val kspFactory: KspFactory = DefaultKspFactory
 
-    @Parameter(defaultValue = "\${plugin}", readonly = true)
+    @Parameter(defaultValue = $$"${plugin}", readonly = true)
     private var pluginDescriptor: PluginDescriptor? = null
 
-    @Parameter(defaultValue = "\${project}", readonly = true, required = true)
+    @Parameter(defaultValue = $$"${project}", readonly = true, required = true)
     protected lateinit var project: MavenProject
 
     /**
@@ -279,7 +279,13 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
                     classLoader,
                 ).toList()
 
-        val providers = filterProcessorProviders(discovered, processorIncludes, processorExcludes)
+        val providers =
+            filterProcessorProviders(
+                providers = discovered,
+                includes = processorIncludes,
+                excludes = processorExcludes,
+                log = log,
+            )
 
         if (discovered.size != providers.size) {
             log.info(

@@ -1,6 +1,7 @@
 package me.kpavlov.ksp.maven
 
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
+import org.apache.maven.plugin.logging.Log
 
 /**
  * Filters a list of [SymbolProcessorProvider] instances using glob-style patterns
@@ -21,17 +22,23 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
  * - `com.example.*` — all providers directly in the `com.example` package
  * - `com.example.**` — all providers in `com.example` and any sub-package
  *
- * **NB! Providers with a null qualified class name are excluded when filtering is active.**
- *
- * @param providers the full list of discovered providers
+ * @param providers the full list of discovered providers. Providers whose
+ *   `provider::class.qualifiedName` is `null` (e.g. anonymous object expressions)
+ *   are always excluded when any [includes] or [excludes] filter is active,
+ *   because they cannot be matched against a pattern.
  * @param includes glob patterns for classes to include; empty means include all
  * @param excludes glob patterns for classes to exclude; applied after includes
- * @return the filtered list, in the same order as [providers].
+ * @param log optional sink for per-provider exclusion messages; called once for
+ *   each provider that is dropped, with a human-readable reason
+ * @return the filtered list, in the same order as [providers]. When both [includes]
+ *   and [excludes] are empty the original list is returned unchanged and no provider
+ *   is excluded regardless of its `qualifiedName`.
  */
 internal fun filterProcessorProviders(
     providers: List<SymbolProcessorProvider>,
     includes: List<String>,
     excludes: List<String>,
+    log: Log,
 ): List<SymbolProcessorProvider> {
     if (includes.isEmpty() && excludes.isEmpty()) return providers
 
@@ -40,10 +47,27 @@ internal fun filterProcessorProviders(
     val excludeRegexes = excludes.map(::buildGlobRegex)
 
     return providers.filter { provider ->
-        val className = provider::class.qualifiedName ?: return@filter false
+        val className = provider::class.qualifiedName
+        if (className == null) {
+            log.info(
+                "Excluding provider ${provider::class} — qualifiedName is null, " +
+                    "cannot match against patterns",
+            )
+            return@filter false
+        }
         val included = includeRegexes.isEmpty() || includeRegexes.any { it.matches(className) }
         val excluded = excludeRegexes.any { it.matches(className) }
-        included && !excluded
+        val retained = included && !excluded
+        if (!retained) {
+            val reason =
+                if (!included) {
+                    "not matched by any include pattern: $includes"
+                } else {
+                    "matched by exclude pattern in: $excludes"
+                }
+            log.debug("Excluding provider $className — $reason")
+        }
+        retained
     }
 }
 
@@ -60,34 +84,18 @@ internal fun matchesGlob(
     pattern: String,
 ): Boolean = buildGlobRegex(pattern).matches(text)
 
-private fun buildGlobRegex(pattern: String): Regex {
-    val sb = StringBuilder("^")
-    var i = 0
-    while (i < pattern.length) {
-        when {
-            i + 1 < pattern.length && pattern[i] == '*' && pattern[i + 1] == '*' -> {
-                sb.append(".*")
-                i += 2
-            }
+// Tokenises a glob pattern into: "**", "*", "?", or a literal run — in that alternation order
+// so "**" is always matched before "*".
+private val globTokenRegex = Regex("""\*\*|\*|\?|[^*?]+""")
 
-            pattern[i] == '*' -> {
-                sb.append("[^.]*")
-                i++
+private fun buildGlobRegex(pattern: String): Regex =
+    globTokenRegex
+        .findAll(pattern)
+        .joinToString(separator = "", prefix = "^", postfix = "$") { token ->
+            when (token.value) {
+                "**" -> ".*"
+                "*" -> "[^.]*"
+                "?" -> "[^.]"
+                else -> Regex.escape(token.value)
             }
-
-            pattern[i] == '?' -> {
-                sb.append("[^.]")
-                i++
-            }
-
-            else -> {
-                // Accumulate the full contiguous literal run, then escape it in one call
-                val start = i
-                while (i < pattern.length && pattern[i] != '*' && pattern[i] != '?') i++
-                sb.append(Regex.escape(pattern.substring(start, i)))
-            }
-        }
-    }
-    sb.append("$")
-    return Regex(sb.toString())
-}
+        }.let(::Regex)

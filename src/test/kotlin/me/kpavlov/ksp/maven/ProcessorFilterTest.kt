@@ -7,6 +7,8 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import org.apache.maven.plugin.logging.Log
+import org.apache.maven.plugin.testing.SilentLog
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -58,16 +60,19 @@ class ProcessorFilterTest {
             "com.example.Foo,       com.example.Foo,    true",
             "com.example.Foo,       com.example.Bar,    false",
             "com.example.Foo,       com.example.*,      true",
-            "com.example.sub.Foo,   com.example.*,      false",  // single-star does not cross package boundary
+            // single-star does not cross the package boundary
+            "com.example.sub.Foo,   com.example.*,      false",
             "com.example.sub.Foo,   com.example.**,     true",
-            "com.example.a.b.Foo,   com.example.**,     true",   // double-star crosses multiple segments
+            // double-star crosses multiple segments
+            "com.example.a.b.Foo,   com.example.**,     true",
             "com.example.Foo,       **,                 true",
             "com.acme.Foo,          com.example.*,      false",
             "com.example.FooBar,    com.example.Foo*,   true",
             "com.example.FooBar,    com.example.*Bar,   true",
             "com.example.FooBar,    com.example.Foo?,   false",
             "com.example.FooBa,     com.example.Foo?a,  true",
-            "comXexampleYFoo,       com.example.Foo,    false",  // dot in pattern is literal, not any-character
+            // dot in a pattern is literal, not any-character
+            "comXexampleYFoo,       com.example.Foo,    false",
         )
         fun `matchesGlob produces correct results`(
             text: String,
@@ -83,10 +88,17 @@ class ProcessorFilterTest {
     @Nested
     inner class FilterProcessorProvidersTest {
         private val pkg = "me.kpavlov.ksp.maven"
+        private val log: Log = SilentLog()
 
         @Test
         fun `returns all providers when both filter lists are empty`() {
-            val result = filterProcessorProviders(allProviders, emptyList(), emptyList())
+            val result =
+                filterProcessorProviders(
+                    providers = allProviders,
+                    includes = emptyList(),
+                    excludes = emptyList(),
+                    log = log,
+                )
             result shouldContainExactly allProviders
         }
 
@@ -97,6 +109,7 @@ class ProcessorFilterTest {
                     allProviders,
                     includes = listOf("$pkg.Alpha*"),
                     excludes = emptyList(),
+                    log = log,
                 )
             result shouldContainExactly listOf(alphaOne, alphaTwo)
         }
@@ -108,6 +121,7 @@ class ProcessorFilterTest {
                     allProviders,
                     includes = listOf(betaFqcn),
                     excludes = emptyList(),
+                    log = log,
                 )
             result shouldContainExactly listOf(beta)
         }
@@ -119,6 +133,7 @@ class ProcessorFilterTest {
                     allProviders,
                     includes = emptyList(),
                     excludes = listOf("$pkg.Alpha*"),
+                    log = log,
                 )
             result shouldContainExactly listOf(beta)
         }
@@ -130,6 +145,7 @@ class ProcessorFilterTest {
                     allProviders,
                     includes = listOf("$pkg.Alpha*"),
                     excludes = listOf("$pkg.AlphaTwo*"),
+                    log = log,
                 )
             // alphaOne: included, not excluded  => kept
             // alphaTwo: included AND excluded    => removed
@@ -144,6 +160,7 @@ class ProcessorFilterTest {
                     allProviders,
                     includes = listOf("org.unrelated.*"),
                     excludes = emptyList(),
+                    log = log,
                 )
             result.shouldBeEmpty()
         }
@@ -155,6 +172,7 @@ class ProcessorFilterTest {
                     allProviders,
                     includes = emptyList(),
                     excludes = listOf("**"),
+                    log = log,
                 )
             result.shouldBeEmpty()
         }
@@ -166,6 +184,7 @@ class ProcessorFilterTest {
                     allProviders,
                     includes = listOf("$pkg.AlphaOne*", "$pkg.Beta*"),
                     excludes = emptyList(),
+                    log = log,
                 )
             result shouldContainExactly listOf(alphaOne, beta)
         }
@@ -177,6 +196,7 @@ class ProcessorFilterTest {
                     allProviders,
                     includes = emptyList(),
                     excludes = listOf("$pkg.AlphaOne*", "$pkg.Beta*"),
+                    log = log,
                 )
             result shouldContainExactly listOf(alphaTwo)
         }
@@ -196,6 +216,7 @@ class ProcessorFilterTest {
                     providers,
                     includes = listOf("$pkg.Alpha*"),
                     excludes = emptyList(),
+                    log = log,
                 )
 
             result shouldHaveSize 1
@@ -211,7 +232,13 @@ class ProcessorFilterTest {
                 }
             val providers = listOf(alphaOne, anonymous)
 
-            val result = filterProcessorProviders(providers, emptyList(), emptyList())
+            val result =
+                filterProcessorProviders(
+                    providers = providers,
+                    includes = emptyList(),
+                    excludes = emptyList(),
+                    log = log,
+                )
 
             // No filtering => original list returned as-is
             result shouldContainExactly providers
