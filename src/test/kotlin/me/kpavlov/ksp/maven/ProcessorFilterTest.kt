@@ -58,15 +58,16 @@ class ProcessorFilterTest {
             "com.example.Foo,       com.example.Foo,    true",
             "com.example.Foo,       com.example.Bar,    false",
             "com.example.Foo,       com.example.*,      true",
-            "com.example.sub.Foo,   com.example.*,      false",
+            "com.example.sub.Foo,   com.example.*,      false",  // single-star does not cross package boundary
             "com.example.sub.Foo,   com.example.**,     true",
-            "com.example.a.b.Foo,   com.example.**,     true",
+            "com.example.a.b.Foo,   com.example.**,     true",   // double-star crosses multiple segments
             "com.example.Foo,       **,                 true",
             "com.acme.Foo,          com.example.*,      false",
             "com.example.FooBar,    com.example.Foo*,   true",
             "com.example.FooBar,    com.example.*Bar,   true",
             "com.example.FooBar,    com.example.Foo?,   false",
             "com.example.FooBa,     com.example.Foo?a,  true",
+            "comXexampleYFoo,       com.example.Foo,    false",  // dot in pattern is literal, not any-character
         )
         fun `matchesGlob produces correct results`(
             text: String,
@@ -74,21 +75,6 @@ class ProcessorFilterTest {
             expected: Boolean,
         ) {
             matchesGlob(text.trim(), pattern.trim()) shouldBe expected
-        }
-
-        @Test
-        fun `single-star does not cross package boundary`() {
-            matchesGlob("com.acme.sub.Foo", "com.acme.*") shouldBe false
-        }
-
-        @Test
-        fun `double-star crosses package boundaries`() {
-            matchesGlob("com.acme.sub.deep.Foo", "com.acme.**") shouldBe true
-        }
-
-        @Test
-        fun `dot in pattern is literal, not any-character`() {
-            matchesGlob("comXexampleYFoo", "com.example.Foo") shouldBe false
         }
     }
 

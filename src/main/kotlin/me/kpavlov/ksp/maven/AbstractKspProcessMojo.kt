@@ -136,14 +136,14 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
      * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to include.
      * When empty, all discovered processors are included by default.
      *
-     * <p>Use `*` to match within a single package segment and `**` to match across segments.</p>
+     * Use `*` to match within a single package segment and `**` to match across segments.
      *
-     * <p>Example: include only processors from a specific package:</p>
-     * <pre>{@code
+     * Example: include only processors from a specific package:
+     * ```xml
      * <processorIncludes>
      *   <processorInclude>com.example.annotation.*</processorInclude>
      * </processorIncludes>
-     * }</pre>
+     * ```
      *
      * @since 0.4.0
      */
@@ -154,12 +154,12 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
      * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to exclude.
      * Providers matching any exclude pattern are removed even if they satisfy an include pattern.
      *
-     * <p>Example: exclude a specific processor:</p>
-     * <pre>{@code
+     * Example: exclude a specific processor:
+     * ```xml
      * <processorExcludes>
      *   <processorExclude>com.example.SlowProcessor</processorExclude>
      * </processorExcludes>
-     * }</pre>
+     * ```
      *
      * @since 0.4.0
      */

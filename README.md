@@ -4,7 +4,7 @@
 [![Kotlin CI with Maven](https://github.com/kpavlov/ksp-maven-plugin/actions/workflows/maven.yml/badge.svg)](https://github.com/kpavlov/ksp-maven-plugin/actions/workflows/maven.yml)
 [![Api Docs](https://img.shields.io/badge/api-docs-blue)](https://kpavlov.github.io/ksp-maven-plugin/api/)
 ![GitHub License](https://img.shields.io/github/license/kpavlov/ksp-maven-plugin)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.2+-blueviolet.svg?logo=kotlin)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.3+-blueviolet.svg?logo=kotlin)](http://kotlinlang.org)
 [![JVM](https://img.shields.io/badge/JVM-11+-red.svg?logo=jvm)](http://java.com)
 
 A Maven plugin for running Kotlin Symbol Processing (KSP) on JVM projects.
@@ -14,12 +14,6 @@ A Maven plugin for running Kotlin Symbol Processing (KSP) on JVM projects.
 This plugin integrates [KSP (Kotlin Symbol Processing)](https://kotlinlang.org/docs/ksp-overview.html) into Maven builds, allowing you to process Kotlin source files with annotation processors that use the [KSP API](https://github.com/google/ksp/blob/main/docs/ksp2.md).
 
 Check out the [blog post.](https://kpavlov.me/blog/ksp-maven-plugin/)
-
-## Requirements
-
-- Maven 3.6.0 or higher
-- JDK 11 or higher
-- Kotlin 2.2.21 or a compatible version
 
 ## Features
 
@@ -41,9 +35,13 @@ The plugin provides two goals:
 
 ### Basic Configuration
 
-Minimal setup for processing **main sources only**:
+Minimal setup for processing main sources only:
 
 ```xml
+<properties>
+    <kotlin.version>2.3.10</kotlin.version>
+</properties>
+
 <build>
     <plugins>
         <plugin>
@@ -70,7 +68,7 @@ Minimal setup for processing **main sources only**:
         <plugin>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-maven-plugin</artifactId>
-            <version>2.2.21</version>
+            <version>${kotlin.version}</version>
             <executions>
                 <execution>
                     <id>compile</id>
@@ -86,11 +84,15 @@ Minimal setup for processing **main sources only**:
 </build>
 ```
 
-### Processing Both Main and Test Sources
+### Processing Both Main and Test Sources (Recommended)
 
-To process both main and test sources (recommended):
+To process both main and test sources, use `<extensions>true</extensions>` to activate both goals automatically:
 
 ```xml
+<properties>
+    <kotlin.version>2.3.10</kotlin.version>
+</properties>
+
 <build>
     <plugins>
         <plugin>
@@ -110,7 +112,7 @@ To process both main and test sources (recommended):
         <plugin>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-maven-plugin</artifactId>
-            <version>2.2.21</version>
+            <version>${kotlin.version}</version>
             <executions>
                 <execution>
                     <id>compile</id>
@@ -257,6 +259,11 @@ All available configuration options:
 KSP processors normally decide for themselves which classes to process. However, you can restrict
 which `SymbolProcessorProvider` implementations are activated using glob-style include and exclude
 patterns matched against the provider's fully-qualified class name.
+
+Both `processorIncludes` and `processorExcludes` are `List<String>` parameters.
+In Maven XML configuration, each list element uses the **singular** form of the parameter name
+as the child tag (i.e. `<processorInclude>` inside `<processorIncludes>`, and
+`<processorExclude>` inside `<processorExcludes>`).
 
 **Pattern syntax:**
 
@@ -469,9 +476,13 @@ Log messages are prefixed with scope identifiers:
 - `[ksp:main]` for main source processing
 - `[ksp:test]` for test source processing
 
-## Building the Plugin
+## Contributing
 
-### Using Make (recommended)
+Contributions are welcome. Follow the Kotlin coding conventions and ensure all tests pass before submitting a pull request.
+
+### Building the Plugin
+
+#### Using Make (recommended)
 
 Build, verify, install the plugin and test with sample project:
 
@@ -503,7 +514,7 @@ Run all checks (format, lint, build):
 make all
 ```
 
-### Using Maven directly
+#### Using Maven directly
 
 Build and install the plugin:
 
@@ -521,10 +532,6 @@ mvn clean compile
 ## License
 
 [Apache License 2.0](LICENSE.txt)
-
-## Contributing
-
-Contributions are welcome! Please follow the Kotlin coding conventions and ensure all tests pass.
 
 ## Resources
 

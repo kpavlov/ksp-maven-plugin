@@ -42,6 +42,25 @@
                 <artifactId>ksp-maven-plugin</artifactId>
                 <version>${ksp.plugin.version}</version>
                 <extensions>true</extensions>
+                <configuration>
+                    <!--
+                      Integration test for processorIncludes:
+                      Explicitly name the provider; if include filtering is broken the
+                      processor won't run, SampleGreeting won't be generated, and
+                      GeneratedCodeTest will fail to compile — a hard build failure.
+                    -->
+                    <processorIncludes>
+                        <processorInclude>me.kpavlov.ksp.maven.testprocessor.*</processorInclude>
+                    </processorIncludes>
+                    <!--
+                      Integration test for processorExcludes:
+                      A pattern that matches nothing; the processor must still run.
+                      If exclude logic incorrectly filters everything, same compile failure.
+                    -->
+                    <processorExcludes>
+                        <processorExclude>com.unrelated.excluded.*</processorExclude>
+                    </processorExcludes>
+                </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>me.kpavlov.ksp.maven</groupId>

@@ -21,10 +21,12 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
  * - `com.example.*` — all providers directly in the `com.example` package
  * - `com.example.**` — all providers in `com.example` and any sub-package
  *
+ * **NB! Providers with a null qualified class name are excluded when filtering is active.**
+ *
  * @param providers the full list of discovered providers
  * @param includes glob patterns for classes to include; empty means include all
  * @param excludes glob patterns for classes to exclude; applied after includes
- * @return the filtered list, in the same order as [providers]
+ * @return the filtered list, in the same order as [providers].
  */
 internal fun filterProcessorProviders(
     providers: List<SymbolProcessorProvider>,
