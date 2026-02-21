@@ -1,1 +1,2 @@
 me.kpavlov.ksp.maven.testprocessor.HelloProcessorProvider
+me.kpavlov.ksp.maven.testprocessor.BreakingProcessorProvider

@@ -4,7 +4,7 @@
 
     <groupId>me.kpavlov.ksp.maven</groupId>
     <artifactId>ksp-maven-plugin</artifactId>
-    <version>0.3.3-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>KSP Maven Plugin</name>
@@ -429,7 +429,7 @@
                             <file>${project.build.directory}/${project.build.finalName}.jar</file>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
-                            <version>42-SNAPSHOT</version>
+                            <version>${project.version}</version>
                             <packaging>maven-plugin</packaging>
                             <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
                             <pomFile>${project.basedir}/pom.xml</pomFile>
@@ -445,7 +445,7 @@
                             <file>${project.build.directory}/${project.build.finalName}-tests.jar</file>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
-                            <version>42-SNAPSHOT</version>
+                            <version>${project.version}</version>
                             <packaging>jar</packaging>
                             <classifier>tests</classifier>
                             <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>

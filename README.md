@@ -4,7 +4,7 @@
 [![Kotlin CI with Maven](https://github.com/kpavlov/ksp-maven-plugin/actions/workflows/maven.yml/badge.svg)](https://github.com/kpavlov/ksp-maven-plugin/actions/workflows/maven.yml)
 [![Api Docs](https://img.shields.io/badge/api-docs-blue)](https://kpavlov.github.io/ksp-maven-plugin/api/)
 ![GitHub License](https://img.shields.io/github/license/kpavlov/ksp-maven-plugin)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.2+-blueviolet.svg?logo=kotlin)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.3+-blueviolet.svg?logo=kotlin)](http://kotlinlang.org)
 [![JVM](https://img.shields.io/badge/JVM-11+-red.svg?logo=jvm)](http://java.com)
 
 A Maven plugin for running Kotlin Symbol Processing (KSP) on JVM projects.
@@ -15,11 +15,21 @@ This plugin integrates [KSP (Kotlin Symbol Processing)](https://kotlinlang.org/d
 
 Check out the [blog post.](https://kpavlov.me/blog/ksp-maven-plugin/)
 
-## Requirements
+**Table of Contents**
 
-- Maven 3.6.0 or higher
-- JDK 11 or higher
-- Kotlin 2.2.21 or a compatible version
+<!--- TOC -->
+- [Features](#features)
+- [Goals](#goals)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Examples](#examples)
+
+- [Contributing](#contributing)
+- [License](#license)
+<!--- End -->
+
+**References:**
+- [FAQ](docs/faq)
 
 ## Features
 
@@ -41,9 +51,13 @@ The plugin provides two goals:
 
 ### Basic Configuration
 
-Minimal setup for processing **main sources only**:
+Minimal setup for processing main sources only:
 
 ```xml
+<properties>
+    <kotlin.version>2.3.10</kotlin.version>
+</properties>
+
 <build>
     <plugins>
         <plugin>
@@ -70,7 +84,7 @@ Minimal setup for processing **main sources only**:
         <plugin>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-maven-plugin</artifactId>
-            <version>2.2.21</version>
+            <version>${kotlin.version}</version>
             <executions>
                 <execution>
                     <id>compile</id>
@@ -86,11 +100,15 @@ Minimal setup for processing **main sources only**:
 </build>
 ```
 
-### Processing Both Main and Test Sources
+### Processing Both Main and Test Sources (Recommended)
 
-To process both main and test sources (recommended):
+To process both main and test sources, use `<extensions>true</extensions>` to activate both goals automatically:
 
 ```xml
+<properties>
+    <kotlin.version>2.3.10</kotlin.version>
+</properties>
+
 <build>
     <plugins>
         <plugin>
@@ -110,7 +128,7 @@ To process both main and test sources (recommended):
         <plugin>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-maven-plugin</artifactId>
-            <version>2.2.21</version>
+            <version>${kotlin.version}</version>
             <executions>
                 <execution>
                     <id>compile</id>
@@ -199,6 +217,24 @@ All available configuration options:
             <option2>value2</option2>
         </apOptions>
 
+        <!--
+          Glob patterns to include specific SymbolProcessorProvider classes (default: all included).
+          Use '*' for a single package segment, '**' for any depth.
+          When non-empty, only providers whose fully-qualified class name matches at least
+          one pattern are passed to KSP.
+        -->
+        <processorIncludes>
+            <processorInclude>com.example.annotation.*</processorInclude>
+        </processorIncludes>
+
+        <!--
+          Glob patterns to exclude specific SymbolProcessorProvider classes (default: none excluded).
+          Providers matching any exclude pattern are removed even if they match an include pattern.
+        -->
+        <processorExcludes>
+            <processorExclude>com.example.SlowProcessor</processorExclude>
+        </processorExcludes>
+
         <!-- Continue build on processing errors (default: false) -->
         <ignoreProcessingErrors>false</ignoreProcessingErrors>
 
@@ -232,6 +268,65 @@ All available configuration options:
         </dependency>
     </dependencies>
 </plugin>
+```
+
+### Processor Filtering
+
+KSP processors normally decide for themselves which classes to process. However, you can restrict
+which `SymbolProcessorProvider` implementations are activated using glob-style include and exclude
+patterns matched against the provider's fully-qualified class name.
+
+Both `processorIncludes` and `processorExcludes` are `List<String>` parameters.
+In Maven XML configuration, each list element uses the **singular** form of the parameter name
+as the child tag (i.e. `<processorInclude>` inside `<processorIncludes>`, and
+`<processorExclude>` inside `<processorExcludes>`).
+
+**Pattern syntax:**
+
+| Token | Meaning |
+|-------|---------|
+| `*`   | Any sequence of characters within a single package segment (no dots) |
+| `**`  | Any sequence of characters across package segments (including dots) |
+| `?`   | Any single non-dot character |
+| other | Matched literally |
+
+**Include/exclude semantics:**
+- When `processorIncludes` is empty, all discovered providers pass the include check.
+- A provider is retained only when it satisfies the include check **and** does not match any
+  `processorExcludes` pattern.
+- Excludes take priority: a provider that matches both an include and an exclude pattern is removed.
+
+**Example — run only one specific processor:**
+
+```xml
+<configuration>
+    <processorIncludes>
+        <processorInclude>com.example.MyProcessor</processorInclude>
+    </processorIncludes>
+</configuration>
+```
+
+**Example — exclude a slow or unwanted processor while keeping all others:**
+
+```xml
+<configuration>
+    <processorExcludes>
+        <processorExclude>com.example.SlowProcessor</processorExclude>
+    </processorExcludes>
+</configuration>
+```
+
+**Example — include a whole package but exclude one class within it:**
+
+```xml
+<configuration>
+    <processorIncludes>
+        <processorInclude>com.example.annotation.*</processorInclude>
+    </processorIncludes>
+    <processorExcludes>
+        <processorExclude>com.example.annotation.ExperimentalProcessor</processorExclude>
+    </processorExcludes>
+</configuration>
 ```
 
 ### Automatic Parameter Detection
@@ -397,9 +492,13 @@ Log messages are prefixed with scope identifiers:
 - `[ksp:main]` for main source processing
 - `[ksp:test]` for test source processing
 
-## Building the Plugin
+## Contributing
 
-### Using Make (recommended)
+Contributions are welcome. Follow the Kotlin coding conventions and ensure all tests pass before submitting a pull request.
+
+### Building the Plugin
+
+#### Using Make (recommended)
 
 Build, verify, install the plugin and test with sample project:
 
@@ -431,7 +530,7 @@ Run all checks (format, lint, build):
 make all
 ```
 
-### Using Maven directly
+#### Using Maven directly
 
 Build and install the plugin:
 
@@ -449,10 +548,6 @@ mvn clean compile
 ## License
 
 [Apache License 2.0](LICENSE.txt)
-
-## Contributing
-
-Contributions are welcome! Please follow the Kotlin coding conventions and ensure all tests pass.
 
 ## Resources
 

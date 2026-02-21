@@ -29,7 +29,7 @@ fun interface KspFactory {
 /**
  * Default implementation of [KspFactory].
  */
-object DefaultKspFactory : KspFactory {
+internal object DefaultKspFactory : KspFactory {
     override fun create(
         kspConfig: KSPConfig,
         symbolProcessorProviders: List<SymbolProcessorProvider>,

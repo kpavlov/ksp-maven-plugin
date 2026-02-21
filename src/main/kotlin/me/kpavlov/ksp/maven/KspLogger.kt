@@ -13,7 +13,7 @@ import org.apache.maven.plugin.logging.Log
  * @param scope Processing scope (MAIN or TEST) for log message prefixing
  */
 class KspLogger(
-    val log: Log,
+    private val log: Log,
     scope: ProcessingScope,
 ) : KSPLogger {
     private val prefix = "[ksp:${scope.name.lowercase()}]"

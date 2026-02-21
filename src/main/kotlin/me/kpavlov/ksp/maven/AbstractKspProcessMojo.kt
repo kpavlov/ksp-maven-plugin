@@ -37,10 +37,10 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
      */
     protected open val kspFactory: KspFactory = DefaultKspFactory
 
-    @Parameter(defaultValue = "\${plugin}", readonly = true)
+    @Parameter(defaultValue = $$"${plugin}", readonly = true)
     private var pluginDescriptor: PluginDescriptor? = null
 
-    @Parameter(defaultValue = "\${project}", readonly = true, required = true)
+    @Parameter(defaultValue = $$"${project}", readonly = true, required = true)
     protected lateinit var project: MavenProject
 
     /**
@@ -130,7 +130,41 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
      * Enable debug output
      */
     @Parameter(property = "ksp.debug", defaultValue = "false")
-    protected val debug = false
+    protected var debug = false
+
+    /**
+     * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to include.
+     * When empty, all discovered processors are included by default.
+     *
+     * Use `*` to match within a single package segment and `**` to match across segments.
+     *
+     * Example: include only processors from a specific package:
+     * ```xml
+     * <processorIncludes>
+     *   <processorInclude>com.example.annotation.*</processorInclude>
+     * </processorIncludes>
+     * ```
+     *
+     * @since 0.4.0
+     */
+    @Parameter
+    private var processorIncludes: List<String> = emptyList()
+
+    /**
+     * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to exclude.
+     * Providers matching any exclude pattern are removed even if they satisfy an include pattern.
+     *
+     * Example: exclude a specific processor:
+     * ```xml
+     * <processorExcludes>
+     *   <processorExclude>com.example.SlowProcessor</processorExclude>
+     * </processorExcludes>
+     * ```
+     *
+     * @since 0.4.0
+     */
+    @Parameter
+    private var processorExcludes: List<String> = emptyList()
 
     /**
      * KSP processor options (key-value pairs)
@@ -141,7 +175,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     /**
      * Module name
      */
-    @Parameter(defaultValue = "\${project.artifactId}")
+    @Parameter(defaultValue = $$"${project.artifactId}")
     private lateinit var moduleName: String
 
     /**
@@ -238,15 +272,39 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
         // Create a new ServiceLoader instance for each execution to ensure thread safety
         // and proper isolation in parallel builds
         val classLoader = Thread.currentThread().contextClassLoader
-        val providers =
+        val discovered =
             ServiceLoader
                 .load(
                     SymbolProcessorProvider::class.java,
                     classLoader,
                 ).toList()
 
-        if (debug && providers.isNotEmpty()) {
-            log.info("Processor providers: ${providers.map { it::class.qualifiedName }}")
+        if (debug) {
+            log.info(
+                "Discovered ${discovered.size} provider(s): " +
+                    discovered.map { it::class.qualifiedName },
+            )
+            if (processorIncludes.isNotEmpty()) log.info("processorIncludes: $processorIncludes")
+            if (processorExcludes.isNotEmpty()) log.info("processorExcludes: $processorExcludes")
+        }
+
+        val providers =
+            filterProcessorProviders(
+                providers = discovered,
+                includes = processorIncludes,
+                excludes = processorExcludes,
+                log = log,
+            )
+
+        if (discovered.size != providers.size) {
+            log.info(
+                "KSP processor filtering: ${discovered.size} discovered, " +
+                    "${providers.size} active after applying includes/excludes filters",
+            )
+        }
+
+        if (debug) {
+            log.info("Active processor providers: ${providers.map { it::class.qualifiedName }}")
         }
 
         return providers
@@ -439,10 +497,11 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
 
     private fun isKspProcessor(jar: File): Boolean =
         runCatching {
-            JarFile(jar).use { jarFile ->
-                jarFile.getJarEntry(KSP_SERVICE_FILE) != null
-            }
-        }.getOrDefault(false)
+            JarFile(jar).use { it.getJarEntry(KSP_SERVICE_FILE) != null }
+        }.getOrElse { ex ->
+            log.warn("Could not inspect JAR ${jar.name}: ${ex.message}")
+            false
+        }
 
     private fun addGeneratedSources() {
         addKotlinSources()
