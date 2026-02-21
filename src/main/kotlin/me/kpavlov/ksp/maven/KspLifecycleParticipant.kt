@@ -4,6 +4,7 @@ import org.apache.maven.AbstractMavenLifecycleParticipant
 import org.apache.maven.execution.MavenSession
 import org.apache.maven.model.Plugin
 import org.apache.maven.model.PluginExecution
+import org.codehaus.plexus.util.xml.Xpp3Dom
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -35,6 +36,12 @@ class KspLifecycleParticipant : AbstractMavenLifecycleParticipant() {
             this.id = id
             this.phase = phase
             this.goals = listOf(goal)
+            // Propagate plugin-level <configuration> so that user-configured parameters
+            // (<processorIncludes>, <processorExcludes>, <debug>, etc.) are applied to
+            // auto-bound executions that Maven would otherwise leave unconfigured.
+            (plugin.configuration as? Xpp3Dom)?.let { pluginConfig ->
+                this.configuration = Xpp3Dom(pluginConfig)
+            }
         }
         plugin.addExecution(execution)
     }

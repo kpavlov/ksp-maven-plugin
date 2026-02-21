@@ -130,7 +130,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
      * Enable debug output
      */
     @Parameter(property = "ksp.debug", defaultValue = "false")
-    protected val debug = false
+    protected var debug = false
 
     /**
      * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to include.
@@ -279,6 +279,15 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
                     classLoader,
                 ).toList()
 
+        if (debug) {
+            log.info(
+                "Discovered ${discovered.size} provider(s): " +
+                    discovered.map { it::class.qualifiedName },
+            )
+            if (processorIncludes.isNotEmpty()) log.info("processorIncludes: $processorIncludes")
+            if (processorExcludes.isNotEmpty()) log.info("processorExcludes: $processorExcludes")
+        }
+
         val providers =
             filterProcessorProviders(
                 providers = discovered,
@@ -294,7 +303,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
             )
         }
 
-        if (debug && providers.isNotEmpty()) {
+        if (debug) {
             log.info("Active processor providers: ${providers.map { it::class.qualifiedName }}")
         }
 

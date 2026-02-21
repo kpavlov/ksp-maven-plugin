@@ -13,6 +13,20 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <!-- Resolves the plugin from the parent project's local staging repo (populated by make ci / make build). -->
+    <repositories>
+        <repository>
+            <id>ksp-maven-plugin-local</id>
+            <url>file://${project.basedir}/../target/local-repo</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>ksp-maven-plugin-local</id>
+            <url>file://${project.basedir}/../target/local-repo</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencies>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -43,6 +57,7 @@
                 <version>${ksp.plugin.version}</version>
                 <extensions>true</extensions>
                 <configuration>
+                    <debug>true</debug>
                     <!--
                       Integration test for processorIncludes:
                       Explicitly name the provider; if include filtering is broken the
@@ -54,11 +69,13 @@
                     </processorIncludes>
                     <!--
                       Integration test for processorExcludes:
-                      A pattern that matches nothing; the processor must still run.
-                      If exclude logic incorrectly filters everything, same compile failure.
+                      BreakingProcessorProvider generates invalid Kotlin syntax — if it runs
+                      the build fails with a compile error. Excluding it here proves that the
+                      exclude filter works: a broken filter would let it through and blow up
+                      the compilation step.
                     -->
                     <processorExcludes>
-                        <processorExclude>com.unrelated.excluded.*</processorExclude>
+                        <processorExclude>me.kpavlov.ksp.maven.testprocessor.BreakingProcessorProvider</processorExclude>
                     </processorExcludes>
                 </configuration>
                 <dependencies>
@@ -74,6 +91,7 @@
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.version}</version>
+                <extensions>true</extensions>
                 <executions>
                     <execution>
                         <id>compile</id>

@@ -65,7 +65,7 @@ internal fun filterProcessorProviders(
                 } else {
                     "matched by exclude pattern in: $excludes"
                 }
-            log.debug("Excluding provider $className — $reason")
+            log.info("Excluding provider $className — $reason")
         }
         retained
     }

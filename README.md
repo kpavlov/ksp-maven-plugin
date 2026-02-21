@@ -15,6 +15,22 @@ This plugin integrates [KSP (Kotlin Symbol Processing)](https://kotlinlang.org/d
 
 Check out the [blog post.](https://kpavlov.me/blog/ksp-maven-plugin/)
 
+**Table of Contents**
+
+<!--- TOC -->
+- [Features](#features)
+- [Goals](#goals)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Examples](#examples)
+
+- [Contributing](#contributing)
+- [License](#license)
+<!--- End -->
+
+**References:**
+- [FAQ](docs/faq)
+
 ## Features
 
 - **Dual Scope Processing**: Separate goals for main sources (`process`) and test sources (`process-test`)

@@ -204,11 +204,7 @@ class ProcessorFilterTest {
         @Test
         fun `provider with null qualifiedName is excluded when filtering is active`() {
             // Anonymous object expressions have qualifiedName == null in Kotlin
-            val anonymous =
-                object : SymbolProcessorProvider {
-                    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor =
-                        error("not for execution")
-                }
+            val anonymous = SymbolProcessorProvider { error("not for execution") }
             val providers = listOf(alphaOne, anonymous)
 
             val result =
@@ -219,8 +215,7 @@ class ProcessorFilterTest {
                     log = log,
                 )
 
-            result shouldHaveSize 1
-            result[0] shouldBe alphaOne
+            result shouldContainExactly listOf(alphaOne)
         }
 
         @Test

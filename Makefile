@@ -1,12 +1,14 @@
 PROJECT_VERSION := $(shell grep -m1 '<version>' pom.xml | sed -e 's/.*<version>\(.*\)<\/version>.*/\1/')
 
+LOCAL_REPO := $(shell pwd)/target/local-repo
+
 .PHONY: build
 build:
 	@echo "ℹ️🔢 Project version: $(PROJECT_VERSION)"
 	@echo "👷 Building and installing project..."
 	@mvn clean verify install && \
 		echo "🧩 Testing with sample project" && \
-		(cd sample-project && mvn -T4C -Dksp.plugin.version=$(PROJECT_VERSION) clean test) && \
+		(cd sample-project && mvn -T4C -Dmaven.repo.local=$(LOCAL_REPO) -Dksp.plugin.version=$(PROJECT_VERSION) clean test) && \
 		echo "✅ Done"
 
 .PHONY: site
@@ -41,16 +43,14 @@ all: format lint build
 .PHONY:ci
 ci:
 	@echo "ℹ️🔢 Project version: $(PROJECT_VERSION)"
+	@#pkill -f "kotlin-daemon"
 	@echo "👷 Building project..."
-	@mvn -Dgpg.skip=true verify site -P release && \
-		echo "🚚📦 Installing..." && \
-		mvn install -DskipTests && \
+	@mvn -Dgpg.skip=true clean verify site -P release && \
 		echo "🧩 Testing with sample project" && \
-		(cd sample-project && mvn -Dksp.plugin.version=$(PROJECT_VERSION) clean test) && \
+		(cd sample-project && mvn -Dmaven.repo.local=$(LOCAL_REPO) -Dksp.plugin.version=$(PROJECT_VERSION) clean test) && \
 		echo "🧩 Testing with arrow-optics-test" && \
-		(cd test-projects/arrow-optics && mvn -Dksp.plugin.version=$(PROJECT_VERSION) clean test) && \
+		(cd test-projects/arrow-optics && mvn -Dmaven.repo.local=$(LOCAL_REPO) -Dksp.plugin.version=$(PROJECT_VERSION) clean test) && \
 		echo "✅ Done"
-
 .PHONY:sample
 sample:
 	@echo "🖼️ Building sample project"

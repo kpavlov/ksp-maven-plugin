@@ -211,9 +211,9 @@ class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMo
     }
 
     // ── Processor filtering ──────────────────────────────────────────────────
-    // HelloProcessorProvider is registered in the test classpath via
-    // META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider
-    // FQCN: me.kpavlov.ksp.maven.testprocessor.HelloProcessorProvider
+    // Both HelloProcessorProvider and BreakingProcessorProvider are registered in the
+    // test classpath via META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider.
+    // Package: me.kpavlov.ksp.maven.testprocessor
 
     @Nested
     inner class ProcessorFilteringTest {
@@ -259,7 +259,7 @@ class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMo
             configureMojo(
                 mojo = mojo,
                 project = project,
-                processorExcludes = listOf(helloFqcn),
+                processorExcludes = listOf("me.kpavlov.ksp.maven.testprocessor.*"),
             )
 
             setupAndExecute()
@@ -288,6 +288,7 @@ class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMo
 
             val names = capturedSymbolProcessorProviders.map { it::class.qualifiedName }
             names shouldContainAll listOf(helloFqcn)
+            names shouldHaveSize 2 // HelloProcessorProvider + BreakingProcessorProvider
         }
     }
 }

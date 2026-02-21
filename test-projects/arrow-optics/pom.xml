@@ -10,9 +10,23 @@
         <kotlin.version>2.3.10</kotlin.version>
         <arrow.version>2.2.1.1</arrow.version>
         <maven.compiler.release>11</maven.compiler.release>
-        <ksp.plugin.version>0.3.2</ksp.plugin.version>
+        <ksp.plugin.version>0.4.0-SNAPSHOT</ksp.plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <!-- Resolves the plugin from the parent project's local staging repo (populated by make ci / make build). -->
+    <repositories>
+        <repository>
+            <id>ksp-maven-plugin-local</id>
+            <url>file://${project.basedir}/../../target/local-repo</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>ksp-maven-plugin-local</id>
+            <url>file://${project.basedir}/../../target/local-repo</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencies>
         <dependency>
