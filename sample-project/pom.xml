@@ -8,7 +8,7 @@
 
     <properties>
         <kotlin.version>2.3.10</kotlin.version>
-        <maven.compiler.release>11</maven.compiler.release>
+        <maven.compiler.release>17</maven.compiler.release>
         <ksp.plugin.version>0.3.2</ksp.plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>

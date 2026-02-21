@@ -40,7 +40,7 @@ object KspMojoTestHelpers {
         allWarningsAsErrors: Boolean? = null,
         mapAnnotationArgumentsInJava: Boolean? = null,
         debug: Boolean? = null,
-        apOptions: Map<String, String>? = null,
+        processorOptions: Map<String, String>? = null,
         moduleName: String? = null,
         jvmTarget: String? = null,
         skip: Boolean? = null,
@@ -75,7 +75,7 @@ object KspMojoTestHelpers {
             )
         }
         debug?.let { setFieldInHierarchy(mojo, "debug", it) }
-        apOptions?.let { setFieldInHierarchy(mojo, "apOptions", it.toMutableMap()) }
+        processorOptions?.let { setFieldInHierarchy(mojo, "processorOptions", it.toMutableMap()) }
         moduleName?.let { setFieldInHierarchy(mojo, "moduleName", it) }
         jvmTarget?.let { setFieldInHierarchy(mojo, "jvmTarget", it) }
         skip?.let {

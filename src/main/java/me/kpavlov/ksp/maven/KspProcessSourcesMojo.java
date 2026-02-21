@@ -1,9 +1,9 @@
-package me.kpavlov.ksp.maven
+package me.kpavlov.ksp.maven;
 
-import org.apache.maven.plugins.annotations.LifecyclePhase
-import org.apache.maven.plugins.annotations.Mojo
-import org.apache.maven.plugins.annotations.Parameter
-import org.apache.maven.plugins.annotations.ResolutionScope
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Processes Kotlin source files with KSP (Kotlin Symbol Processing) for main sources.
@@ -14,11 +14,11 @@ import org.apache.maven.plugins.annotations.ResolutionScope
  * <p>The generated sources are automatically added to the compilation classpath unless
  * {@code addGeneratedSourcesToCompile} is set to false.</p>
  *
- * <h3>Thread Safety</h3>
+ * <h2>Thread Safety</h2>
  * <p>This mojo is thread-safe and supports parallel Maven builds. Each execution creates
  * isolated KSP processing instances with no shared mutable state.</p>
  *
- * <h3>Usage Example</h3>
+ * <h2>Usage Example</h2>
  * <pre>{@code
  * <plugin>
  *   <groupId>me.kpavlov.ksp.maven</groupId>
@@ -37,13 +37,11 @@ import org.apache.maven.plugins.annotations.ResolutionScope
  * @since 0.1.0
  */
 @Mojo(
-    name = "process",
-    defaultPhase = LifecyclePhase.GENERATE_SOURCES,
-    requiresDependencyResolution = ResolutionScope.COMPILE,
-    threadSafe = true,
-)
-open class KspProcessSourcesMojo : AbstractKspProcessMojo() {
-    override val scope: ProcessingScope = ProcessingScope.MAIN
+        name = "process",
+        defaultPhase = LifecyclePhase.GENERATE_SOURCES,
+        requiresDependencyResolution = ResolutionScope.COMPILE,
+        threadSafe = true)
+public class KspProcessSourcesMojo extends AbstractKspProcessMojo {
 
     /**
      * Skip KSP processing for main sources.
@@ -54,7 +52,15 @@ open class KspProcessSourcesMojo : AbstractKspProcessMojo() {
      * @since 0.1.0
      */
     @Parameter(property = "ksp.skip", defaultValue = "false")
-    private val skip = false
+    private boolean skip;
 
-    override fun isSkip(): Boolean = skip
+    @Override
+    public ProcessingScope getScope() {
+        return ProcessingScope.MAIN;
+    }
+
+    @Override
+    protected boolean isSkip() {
+        return skip;
+    }
 }

@@ -11,13 +11,17 @@ import javax.inject.Singleton
 @Named
 @Singleton
 class KspLifecycleParticipant : AbstractMavenLifecycleParticipant() {
-
     override fun afterProjectsRead(session: MavenSession) {
         session.projects.forEach { project ->
             val plugin = project.build.pluginsAsMap["me.kpavlov.ksp.maven:ksp-maven-plugin"]
             if (plugin != null && plugin.isExtensions) {
                 addExecution(plugin, "process-main-sources", "process", "generate-sources")
-                addExecution(plugin, "process-test-sources", "process-test", "generate-test-sources")
+                addExecution(
+                    plugin,
+                    "process-test-sources",
+                    "process-test",
+                    "generate-test-sources",
+                )
             }
         }
     }
@@ -32,17 +36,18 @@ class KspLifecycleParticipant : AbstractMavenLifecycleParticipant() {
             return
         }
 
-        val execution = PluginExecution().apply {
-            this.id = id
-            this.phase = phase
-            this.goals = listOf(goal)
-            // Propagate plugin-level <configuration> so that user-configured parameters
-            // (<processorIncludes>, <processorExcludes>, <debug>, etc.) are applied to
-            // auto-bound executions that Maven would otherwise leave unconfigured.
-            (plugin.configuration as? Xpp3Dom)?.let { pluginConfig ->
-                this.configuration = Xpp3Dom(pluginConfig)
+        val execution =
+            PluginExecution().apply {
+                this.id = id
+                this.phase = phase
+                this.goals = listOf(goal)
+                // Propagate plugin-level <configuration> so that user-configured parameters
+                // (<processorIncludes>, <processorExcludes>, <debug>, etc.) are applied to
+                // auto-bound executions that Maven would otherwise leave unconfigured.
+                (plugin.configuration as? Xpp3Dom)?.let { pluginConfig ->
+                    this.configuration = Xpp3Dom(pluginConfig)
+                }
             }
-        }
         plugin.addExecution(execution)
     }
 }

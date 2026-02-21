@@ -17,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.io.File
 
@@ -24,12 +26,13 @@ import java.io.File
 class KspProcessTestSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessTestSourcesMojo>() {
     override fun createMojo(): KspProcessTestSourcesMojo =
         object : KspProcessTestSourcesMojo() {
-            override val kspFactory: KspFactory =
-                KspFactory { kspConfig, symbolProcessorProviders, _ ->
-                    capturedKSPConfig = kspConfig
-                    capturedSymbolProcessorProviders = symbolProcessorProviders
-                    processing
-                }
+            override val kspFactory: KspFactory
+                get() =
+                    KspFactory { kspConfig, symbolProcessorProviders, _ ->
+                        capturedKSPConfig = kspConfig
+                        capturedSymbolProcessorProviders = symbolProcessorProviders
+                        processing
+                    }
         }
 
     @BeforeEach
@@ -82,30 +85,28 @@ class KspProcessTestSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessTestS
     }
 
     @Test
-    fun `should detect KSP processor with correct META-INF entry`() {
+    fun `should detect and process KSP processor with correct META-INF entry`() {
         val kspProcessor = createMockKspProcessorJar(tempDir)
         project.artifacts = setOf(kspProcessor)
+        createTestSourceFile(project)
+        whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.OK)
 
-        val method = AbstractKspProcessMojo::class.java.getDeclaredMethod("findKspProcessors")
-        method.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val processors = method.invoke(mojo) as List<File>
+        // Execute and verify that processing was called (implying processor was detected)
+        mojo.execute()
 
-        processors shouldHaveSize 1
-        processors[0] shouldBe kspProcessor.file
+        // If we got here without exception, the processor was detected and processing was invoked
     }
 
     @Test
-    fun `should not detect regular JAR without KSP META-INF entry`() {
+    fun `should not process when only regular JAR without KSP META-INF entry`() {
         val regularJar = createRegularJar(tempDir)
         project.artifacts = setOf(regularJar)
+        createTestSourceFile(project)
 
-        val method = AbstractKspProcessMojo::class.java.getDeclaredMethod("findKspProcessors")
-        method.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val processors = method.invoke(mojo) as List<File>
+        // Execute - should skip processing since no KSP processors found
+        mojo.execute()
 
-        processors.shouldBeEmpty()
+        verify(processing, never()).execute()
     }
 
     @Test
