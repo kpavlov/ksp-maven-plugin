@@ -5,30 +5,20 @@
 [![Api Docs](https://img.shields.io/badge/api-docs-blue)](https://kpavlov.github.io/ksp-maven-plugin/api/)
 ![GitHub License](https://img.shields.io/github/license/kpavlov/ksp-maven-plugin)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.3+-blueviolet.svg?logo=kotlin)](http://kotlinlang.org)
-[![JVM](https://img.shields.io/badge/JVM-11+-red.svg?logo=jvm)](http://java.com)
+[![JVM](https://img.shields.io/badge/JVM-17+-red.svg?logo=openjdk)](https://www.java.com)
 
 A Maven plugin for running Kotlin Symbol Processing (KSP) on JVM projects.
 
 ## Overview
 
-This plugin integrates [KSP (Kotlin Symbol Processing)](https://kotlinlang.org/docs/ksp-overview.html) into Maven builds, allowing you to process Kotlin source files with annotation processors that use the [KSP API](https://github.com/google/ksp/blob/main/docs/ksp2.md).
+This plugin integrates [KSP (Kotlin Symbol Processing)](https://kotlinlang.org/docs/ksp-overview.html) into Maven
+builds, allowing you to process Kotlin source files with annotation processors that use
+the [KSP API](https://github.com/google/ksp/blob/main/docs/ksp2.md).
 
 Check out the [blog post.](https://kpavlov.me/blog/ksp-maven-plugin/)
 
-**Table of Contents**
-
-<!--- TOC -->
-- [Features](#features)
-- [Goals](#goals)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Examples](#examples)
-
-- [Contributing](#contributing)
-- [License](#license)
-<!--- End -->
-
 **References:**
+
 - [FAQ](docs/faq)
 
 ## Features
@@ -37,7 +27,8 @@ Check out the [blog post.](https://kpavlov.me/blog/ksp-maven-plugin/)
 - **Thread Safe**: Fully supports Maven parallel builds (`mvn -T`)
 - **Scope-Aware Logging**: Distinct log prefixes for main (`[ksp:main]`) and test (`[ksp:test]`) processing
 - **Incremental Compilation**: Optional incremental processing support
-- **Automatic Configuration**: Automatically detects Kotlin version, JVM target, and other settings from the project environment
+- **Automatic Configuration**: Automatically detects Kotlin version, JVM target, and other settings from the project
+  environment
 - **Flexible Configuration**: Extensive configuration options for all KSP parameters
 
 ## Goals
@@ -54,49 +45,50 @@ The plugin provides two goals:
 Minimal setup for processing main sources only:
 
 ```xml
+
 <properties>
-    <kotlin.version>2.3.10</kotlin.version>
+  <kotlin.version>2.3.10</kotlin.version>
 </properties>
 
 <build>
-    <plugins>
-        <plugin>
-            <groupId>me.kpavlov.ksp.maven</groupId>
-            <artifactId>ksp-maven-plugin</artifactId>
-            <version>[LATEST VERSION]</version>
-            <executions>
-                <execution>
-                    <goals>
-                        <goal>process</goal>
-                    </goals>
-                </execution>
-            </executions>
-            <!-- KSP processors are plugin dependencies, not project dependencies -->
-            <dependencies>
-                <dependency>
-                    <groupId>com.example</groupId>
-                    <artifactId>my-ksp-processor</artifactId>
-                    <version>1.0.0</version>
-                </dependency>
-            </dependencies>
-        </plugin>
+<plugins>
+  <plugin>
+    <groupId>me.kpavlov.ksp.maven</groupId>
+    <artifactId>ksp-maven-plugin</artifactId>
+    <version>[LATEST VERSION]</version>
+    <executions>
+      <execution>
+        <goals>
+          <goal>process</goal>
+        </goals>
+      </execution>
+    </executions>
+    <!-- KSP processors are plugin dependencies, not project dependencies -->
+    <dependencies>
+      <dependency>
+        <groupId>com.example</groupId>
+        <artifactId>my-ksp-processor</artifactId>
+        <version>1.0.0</version>
+      </dependency>
+    </dependencies>
+  </plugin>
 
-        <plugin>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-maven-plugin</artifactId>
-            <version>${kotlin.version}</version>
-            <executions>
-                <execution>
-                    <id>compile</id>
-                    <goals>
-                        <goal>compile</goal>
-                    </goals>
-                    <phase>compile</phase>
-                </execution>
-            </executions>
-        </plugin>
-    </plugins>
-    <sourceDirectory>src/main/kotlin</sourceDirectory>
+  <plugin>
+    <groupId>org.jetbrains.kotlin</groupId>
+    <artifactId>kotlin-maven-plugin</artifactId>
+    <version>${kotlin.version}</version>
+    <executions>
+      <execution>
+        <id>compile</id>
+        <goals>
+          <goal>compile</goal>
+        </goals>
+        <phase>compile</phase>
+      </execution>
+    </executions>
+  </plugin>
+</plugins>
+<sourceDirectory>src/main/kotlin</sourceDirectory>
 </build>
 ```
 
@@ -106,49 +98,49 @@ To process both main and test sources, use `<extensions>true</extensions>` to ac
 
 ```xml
 <properties>
-    <kotlin.version>2.3.10</kotlin.version>
+  <kotlin.version>2.3.10</kotlin.version>
 </properties>
 
 <build>
-    <plugins>
-        <plugin>
-            <groupId>me.kpavlov.ksp.maven</groupId>
-            <artifactId>ksp-maven-plugin</artifactId>
-            <version>[LATEST VERSION]</version>
-            <extensions>true</extensions>
-            <dependencies>
-                <dependency>
-                    <groupId>com.example</groupId>
-                    <artifactId>my-ksp-processor</artifactId>
-                    <version>1.0.0</version>
-                </dependency>
-            </dependencies>
-        </plugin>
-
-        <plugin>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-maven-plugin</artifactId>
-            <version>${kotlin.version}</version>
-            <executions>
-                <execution>
-                    <id>compile</id>
-                    <goals>
-                        <goal>compile</goal>
-                    </goals>
-                    <phase>compile</phase>
-                </execution>
-                <execution>
-                    <id>test-compile</id>
-                    <goals>
-                        <goal>test-compile</goal>
-                    </goals>
-                    <phase>test-compile</phase>
-                </execution>
-            </executions>
-        </plugin>
-    </plugins>
-    <sourceDirectory>src/main/kotlin</sourceDirectory>
-    <testSourceDirectory>src/test/kotlin</testSourceDirectory>
+  <plugins>
+    <plugin>
+      <groupId>me.kpavlov.ksp.maven</groupId>
+      <artifactId>ksp-maven-plugin</artifactId>
+      <version>[LATEST VERSION]</version>
+      <extensions>true</extensions>
+      <dependencies>
+        <dependency>
+          <groupId>com.example</groupId>
+          <artifactId>my-ksp-processor</artifactId>
+          <version>1.0.0</version>
+        </dependency>
+      </dependencies>
+    </plugin>
+  
+    <plugin>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-maven-plugin</artifactId>
+      <version>${kotlin.version}</version>
+      <executions>
+        <execution>
+          <id>compile</id>
+          <goals>
+            <goal>compile</goal>
+          </goals>
+          <phase>compile</phase>
+        </execution>
+        <execution>
+          <id>test-compile</id>
+          <goals>
+            <goal>test-compile</goal>
+          </goals>
+          <phase>test-compile</phase>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+  <sourceDirectory>src/main/kotlin</sourceDirectory>
+  <testSourceDirectory>src/test/kotlin</testSourceDirectory>
 </build>
 ```
 
@@ -158,115 +150,115 @@ All available configuration options:
 
 ```xml
 <plugin>
-    <groupId>me.kpavlov.ksp.maven</groupId>
-    <artifactId>ksp-maven-plugin</artifactId>
-    <version>[LATEST VERSION]</version>
-    <executions>
-        <execution>
-            <goals>
-                <goal>process</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <!-- Main source directory to process (default: ${project.build.sourceDirectory}) -->
-        <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+  <groupId>me.kpavlov.ksp.maven</groupId>
+  <artifactId>ksp-maven-plugin</artifactId>
+  <version>[LATEST VERSION]</version>
+  <executions>
+    <execution>
+      <goals>
+        <goal>process</goal>
+      </goals>
+    </execution>
+  </executions>
+  <configuration>
+    <!-- Main source directory to process (default: ${project.build.sourceDirectory}) -->
+    <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
 
-        <!-- Additional source directories (default: none) -->
-        <sourceDirs>
-            <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
-            <sourceDir>${project.basedir}/src/generated/kotlin</sourceDir>
-        </sourceDirs>
+    <!-- Additional source directories (default: none) -->
+    <sourceDirs>
+      <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
+      <sourceDir>${project.basedir}/src/generated/kotlin</sourceDir>
+    </sourceDirs>
 
-        <!-- Output directory for generated Kotlin sources (default: ${project.build.directory}/generated-sources/ksp) -->
-        <kotlinOutputDir>${project.build.directory}/generated-sources/ksp</kotlinOutputDir>
+    <!-- Output directory for generated Kotlin sources (default: ${project.build.directory}/generated-sources/ksp) -->
+    <kotlinOutputDir>${project.build.directory}/generated-sources/ksp</kotlinOutputDir>
 
-        <!-- Output directory for generated Java sources (default: ${project.build.directory}/generated-sources/ksp) -->
-        <javaOutputDir>${project.build.directory}/generated-sources/ksp</javaOutputDir>
+    <!-- Output directory for generated Java sources (default: ${project.build.directory}/generated-sources/ksp) -->
+    <javaOutputDir>${project.build.directory}/generated-sources/ksp</javaOutputDir>
 
-        <!-- Output directory for compiled classes (default: ${project.build.directory}/ksp-classes) -->
-        <classOutputDir>${project.build.directory}/ksp-classes</classOutputDir>
+    <!-- Output directory for compiled classes (default: ${project.build.directory}/ksp-classes) -->
+    <classOutputDir>${project.build.directory}/ksp-classes</classOutputDir>
 
-        <!-- Output directory for resources (default: ${project.build.directory}/generated-resources/ksp) -->
-        <resourceOutputDir>${project.build.directory}/generated-resources/ksp</resourceOutputDir>
+    <!-- Output directory for resources (default: ${project.build.directory}/generated-resources/ksp) -->
+    <resourceOutputDir>${project.build.directory}/generated-resources/ksp</resourceOutputDir>
 
-        <!-- KSP output directory (default: ${project.build.directory}/ksp) -->
-        <kspOutputDir>${project.build.directory}/ksp</kspOutputDir>
+    <!-- KSP output directory (default: ${project.build.directory}/ksp) -->
+    <kspOutputDir>${project.build.directory}/ksp</kspOutputDir>
 
-        <!-- Cache directory for incremental processing (default: ${project.build.directory}/ksp-cache) -->
-        <cachesDir>${project.build.directory}/ksp-cache</cachesDir>
+    <!-- Cache directory for incremental processing (default: ${project.build.directory}/ksp-cache) -->
+    <cachesDir>${project.build.directory}/ksp-cache</cachesDir>
 
-        <!-- Enable incremental processing (default: false) -->
-        <incremental>true</incremental>
+    <!-- Enable incremental processing (default: false) -->
+    <incremental>true</incremental>
 
-        <!-- Enable incremental compilation logging (default: false) -->
-        <incrementalLog>true</incrementalLog>
+    <!-- Enable incremental compilation logging (default: false) -->
+    <incrementalLog>true</incrementalLog>
 
-        <!-- Kotlin language version (default: detected from kotlin-maven-plugin or kotlin.version) -->
-        <languageVersion>2.2</languageVersion>
+    <!-- Kotlin language version (default: detected from kotlin-maven-plugin or kotlin.version) -->
+    <languageVersion>2.3</languageVersion>
 
-        <!-- Kotlin API version (default: detected from languageVersion) -->
-        <apiVersion>2.2</apiVersion>
+    <!-- Kotlin API version (default: detected from languageVersion) -->
+    <apiVersion>2.3</apiVersion>
 
-        <!-- JVM default mode for interfaces (default: detected from kotlin-maven-plugin or 'disable') -->
-        <jvmDefaultMode>disable</jvmDefaultMode>
+    <!-- JVM default mode for interfaces (default: detected from kotlin-maven-plugin) -->
+    <jvmDefaultMode></jvmDefaultMode>
 
-        <!-- KSP processor options as key-value pairs (default: none) -->
-        <apOptions>
-            <option1>value1</option1>
-            <option2>value2</option2>
-        </apOptions>
+    <!-- KSP processor options as key-value pairs (default: none) -->
+    <processorOptions>
+      <option1>value1</option1>
+      <option2>value2</option2>
+    </processorOptions>
 
-        <!--
-          Glob patterns to include specific SymbolProcessorProvider classes (default: all included).
-          Use '*' for a single package segment, '**' for any depth.
-          When non-empty, only providers whose fully-qualified class name matches at least
-          one pattern are passed to KSP.
-        -->
-        <processorIncludes>
-            <processorInclude>com.example.annotation.*</processorInclude>
-        </processorIncludes>
+    <!--
+      Glob patterns to include specific SymbolProcessorProvider classes (default: all included).
+      Use '*' for a single package segment, '**' for any depth.
+      When non-empty, only providers whose fully-qualified class name matches at least
+      one pattern are passed to KSP.
+    -->
+    <processorIncludes>
+      <processorInclude>com.example.annotation.*</processorInclude>
+    </processorIncludes>
 
-        <!--
-          Glob patterns to exclude specific SymbolProcessorProvider classes (default: none excluded).
-          Providers matching any exclude pattern are removed even if they match an include pattern.
-        -->
-        <processorExcludes>
-            <processorExclude>com.example.SlowProcessor</processorExclude>
-        </processorExcludes>
+    <!--
+      Glob patterns to exclude specific SymbolProcessorProvider classes (default: none excluded).
+      Providers matching any exclude pattern are removed even if they match an include pattern.
+    -->
+    <processorExcludes>
+      <processorExclude>com.example.SlowProcessor</processorExclude>
+    </processorExcludes>
 
-        <!-- Continue build on processing errors (default: false) -->
-        <ignoreProcessingErrors>false</ignoreProcessingErrors>
+    <!-- Continue build on processing errors (default: false) -->
+    <ignoreProcessingErrors>false</ignoreProcessingErrors>
 
-        <!-- Treat all warnings as errors (default: false) -->
-        <allWarningsAsErrors>false</allWarningsAsErrors>
+    <!-- Treat all warnings as errors (default: false) -->
+    <allWarningsAsErrors>false</allWarningsAsErrors>
 
-        <!-- Map annotation arguments in Java sources (default: true) -->
-        <mapAnnotationArgumentsInJava>true</mapAnnotationArgumentsInJava>
+    <!-- Map annotation arguments in Java sources (default: true) -->
+    <mapAnnotationArgumentsInJava>true</mapAnnotationArgumentsInJava>
 
-        <!-- Module name (default: ${project.artifactId}) -->
-        <moduleName>my-module</moduleName>
+    <!-- Module name (default: ${project.artifactId}) -->
+    <moduleName>my-module</moduleName>
 
-        <!-- JVM target version (default: detected from kotlin-maven-plugin or maven.compiler.release) -->
-        <jvmTarget>17</jvmTarget>
+    <!-- JVM target version (default: detected from kotlin-maven-plugin or maven.compiler.release) -->
+    <jvmTarget>17</jvmTarget>
 
-        <!-- Skip KSP processing (default: false, can be set via -Dksp.skip=true) -->
-        <skip>false</skip>
+    <!-- Skip KSP processing (default: false, can be set via -Dksp.skip=true) -->
+    <skip>false</skip>
 
-        <!-- Add generated sources to compilation (default: true) -->
-        <addGeneratedSourcesToCompile>true</addGeneratedSourcesToCompile>
+    <!-- Add generated sources to compilation (default: true) -->
+    <addGeneratedSourcesToCompile>true</addGeneratedSourcesToCompile>
 
-        <!-- Enable debug output (default: false) -->
-        <debug>false</debug>
-    </configuration>
-    <!-- KSP processors are plugin dependencies, not project dependencies -->
-    <dependencies>
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>my-ksp-processor</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-    </dependencies>
+    <!-- Enable debug output (default: false) -->
+    <debug>false</debug>
+  </configuration>
+  <!-- KSP processors are plugin dependencies, not project dependencies -->
+  <dependencies>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>my-ksp-processor</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+  </dependencies>
 </plugin>
 ```
 
@@ -283,14 +275,15 @@ as the child tag (i.e. `<processorInclude>` inside `<processorIncludes>`, and
 
 **Pattern syntax:**
 
-| Token | Meaning |
-|-------|---------|
+| Token | Meaning                                                              |
+|-------|----------------------------------------------------------------------|
 | `*`   | Any sequence of characters within a single package segment (no dots) |
-| `**`  | Any sequence of characters across package segments (including dots) |
-| `?`   | Any single non-dot character |
-| other | Matched literally |
+| `**`  | Any sequence of characters across package segments (including dots)  |
+| `?`   | Any single non-dot character                                         |
+| other | Matched literally                                                    |
 
 **Include/exclude semantics:**
+
 - When `processorIncludes` is empty, all discovered providers pass the include check.
 - A provider is retained only when it satisfies the include check **and** does not match any
   `processorExcludes` pattern.
@@ -299,33 +292,36 @@ as the child tag (i.e. `<processorInclude>` inside `<processorIncludes>`, and
 **Example — run only one specific processor:**
 
 ```xml
+
 <configuration>
-    <processorIncludes>
-        <processorInclude>com.example.MyProcessor</processorInclude>
-    </processorIncludes>
+  <processorIncludes>
+    <processorInclude>com.example.MyProcessor</processorInclude>
+  </processorIncludes>
 </configuration>
 ```
 
 **Example — exclude a slow or unwanted processor while keeping all others:**
 
 ```xml
+
 <configuration>
-    <processorExcludes>
-        <processorExclude>com.example.SlowProcessor</processorExclude>
-    </processorExcludes>
+  <processorExcludes>
+    <processorExclude>com.example.SlowProcessor</processorExclude>
+  </processorExcludes>
 </configuration>
 ```
 
 **Example — include a whole package but exclude one class within it:**
 
 ```xml
+
 <configuration>
-    <processorIncludes>
-        <processorInclude>com.example.annotation.*</processorInclude>
-    </processorIncludes>
-    <processorExcludes>
-        <processorExclude>com.example.annotation.ExperimentalProcessor</processorExclude>
-    </processorExcludes>
+  <processorIncludes>
+    <processorInclude>com.example.annotation.*</processorInclude>
+  </processorIncludes>
+  <processorExcludes>
+    <processorExclude>com.example.annotation.ExperimentalProcessor</processorExclude>
+  </processorExcludes>
 </configuration>
 ```
 
@@ -333,7 +329,7 @@ as the child tag (i.e. `<processorInclude>` inside `<processorIncludes>`, and
 
 The plugin automatically detects many settings from the project configuration and properties:
 
-|       Parameter       |                                           Detection Source (in order of priority)                                           |
+| Parameter             | Detection Source (in order of priority)                                                                                     |
 |-----------------------|-----------------------------------------------------------------------------------------------------------------------------|
 | `languageVersion`     | `<languageVersion>` in `kotlin-maven-plugin`, `kotlin.compiler.languageVersion` property, or `kotlin.version` (major.minor) |
 | `apiVersion`          | `<apiVersion>` in `kotlin-maven-plugin`, `kotlin.compiler.apiVersion` property, or `languageVersion`                        |
@@ -401,7 +397,8 @@ mvn clean install -T4
 mvn clean install -T1C
 ```
 
-Each execution creates isolated instances of `KotlinSymbolProcessing` with no shared mutable state, ensuring safe concurrent builds in multi-module projects.
+Each execution creates isolated instances of `KotlinSymbolProcessing` with no shared mutable state, ensuring safe
+concurrent builds in multi-module projects.
 
 For detailed information about thread safety guarantees, see [PARALLEL_EXECUTION.md](PARALLEL_EXECUTION.md).
 
@@ -418,8 +415,9 @@ mvn clean install -Dksp.skip=true
 Or in your `pom.xml`:
 
 ```xml
+
 <configuration>
-    <skip>true</skip>
+  <skip>true</skip>
 </configuration>
 ```
 
@@ -434,14 +432,15 @@ mvn clean test -Dksp.skipTest=true
 Or in your `pom.xml` for the `process-test` execution:
 
 ```xml
+
 <execution>
-    <id>process-test-sources</id>
-    <goals>
-        <goal>process-test</goal>
-    </goals>
-    <configuration>
-        <skipTest>true</skipTest>
-    </configuration>
+  <id>process-test-sources</id>
+  <goals>
+    <goal>process-test</goal>
+  </goals>
+  <configuration>
+    <skipTest>true</skipTest>
+  </configuration>
 </execution>
 ```
 
@@ -451,7 +450,8 @@ Or in your `pom.xml` for the `process-test` execution:
 
 If you see "No KSP processors found in dependencies":
 
-1. Verify your processor is added as a **plugin dependency** (inside `<plugin><dependencies>` section), not as a project dependency
+1. Verify your processor is added as a **plugin dependency** (inside `<plugin><dependencies>` section), not as a project
+   dependency
 2. Check the processor JAR contains `META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider`
 3. Ensure the dependency scope is not `test`
 
@@ -476,12 +476,14 @@ If incremental compilation causes problems:
 Enable debug output to see detailed processing information:
 
 ```xml
+
 <configuration>
-    <debug>true</debug>
+  <debug>true</debug>
 </configuration>
 ```
 
 This will log:
+
 - Found KSP processors
 - Processor classloader details
 - Processor providers
@@ -489,12 +491,14 @@ This will log:
 - Incremental changes (if enabled)
 
 Log messages are prefixed with scope identifiers:
+
 - `[ksp:main]` for main source processing
 - `[ksp:test]` for test source processing
 
 ## Contributing
 
-Contributions are welcome. Follow the Kotlin coding conventions and ensure all tests pass before submitting a pull request.
+Contributions are welcome. Follow the Kotlin coding conventions and ensure all tests pass before submitting a pull
+request.
 
 ### Building the Plugin
 

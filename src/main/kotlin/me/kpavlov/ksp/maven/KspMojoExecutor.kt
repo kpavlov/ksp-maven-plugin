@@ -6,12 +6,9 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import org.apache.maven.artifact.Artifact
-import org.apache.maven.plugin.AbstractMojo
+import org.apache.maven.model.Resource
 import org.apache.maven.plugin.MojoExecutionException
 import org.apache.maven.plugin.MojoFailureException
-import org.apache.maven.plugin.descriptor.PluginDescriptor
-import org.apache.maven.plugins.annotations.Parameter
-import org.apache.maven.project.MavenProject
 import org.codehaus.plexus.util.xml.Xpp3Dom
 import java.io.File
 import java.io.IOException
@@ -19,190 +16,38 @@ import java.nio.file.Files
 import java.util.ServiceLoader
 import java.util.jar.JarFile
 
-@Suppress("TooManyFunctions")
-abstract class AbstractKspProcessMojo : AbstractMojo() {
+/**
+ * Executes KSP (Kotlin Symbol Processing) for Maven Mojos.
+ *
+ * This class contains all the core KSP processing logic and is invoked from Java Mojos
+ * via the [KspMojoExecutors] facade. The Java Mojos hold the Maven parameter annotations
+ * with Javadoc for the maven-plugin-plugin to extract documentation, while this class
+ * handles the actual processing.
+ *
+ * Thread Safety: This executor creates isolated KSP instances for each execution,
+ * making it safe for parallel Maven builds.
+ */
+internal class KspMojoExecutor(
+    private val params: KspMojoParameters,
+) {
     companion object {
         private const val KSP_SERVICE_FILE =
             "META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider"
     }
 
-    /**
-     * Processing scope (MAIN or TEST) - must be initialized by subclasses
-     */
-    protected abstract val scope: ProcessingScope
+    private val log get() = params.log
+    private val scope get() = params.scope
+    private val debug get() = params.debug
 
     /**
-     * Factory for creating KSP instances. Can be overridden for testing.
-     * Each invocation creates a new isolated instance.
-     */
-    protected open val kspFactory: KspFactory = DefaultKspFactory
-
-    @Parameter(defaultValue = $$"${plugin}", readonly = true)
-    private var pluginDescriptor: PluginDescriptor? = null
-
-    @Parameter(defaultValue = $$"${project}", readonly = true, required = true)
-    protected lateinit var project: MavenProject
-
-    /**
-     * Source directory to process
-     */
-    @Parameter
-    private var sourceDirectory: File? = null
-
-    /**
-     * Additional source directories
-     */
-    @Parameter
-    private val sourceDirs: MutableList<File>? = null
-
-    /**
-     * Output directory for generated Kotlin sources
-     */
-    @Parameter
-    private var kotlinOutputDir: File? = null
-
-    /**
-     * Output directory for generated Java sources
-     */
-    @Parameter
-    private var javaOutputDir: File? = null
-
-    /**
-     * Output directory for compiled classes
-     */
-    @Parameter
-    private var classOutputDir: File? = null
-
-    /**
-     * Output directory for resources
-     */
-    @Parameter
-    private var resourceOutputDir: File? = null
-
-    /**
-     * KSP output directory
-     */
-    @Parameter
-    private var kspOutputDir: File? = null
-
-    /**
-     * Cache directory for incremental processing
-     */
-    @Parameter
-    private var cachesDir: File? = null
-
-    /**
-     * Enable incremental processing
-     */
-    @Parameter(defaultValue = "false")
-    private val incremental: Boolean = false
-
-    @Parameter(defaultValue = "false")
-    private val incrementalLog: Boolean = false
-
-    @Parameter(property = "kotlin.compiler.jvmDefault", defaultValue = "disable")
-    private var jvmDefaultMode: String = "disable"
-
-    @Parameter(property = "kotlin.compiler.languageVersion", defaultValue = "2.2")
-    private var languageVersion: String? = null
-
-    @Parameter(property = "kotlin.compiler.apiVersion", defaultValue = "2.2")
-    private var apiVersion: String? = null
-
-    /**
-     * Indicates whether to ignore processing errors during the KSP (Kotlin Symbol Processing) execution.
+     * Executes KSP processing.
      *
-     * When set to `true`, the processing will continue even if errors occur, potentially generating
-     * incomplete or invalid outputs. If set to `false`, the execution will halt on encountering an error.
-     *
-     * This setting is disabled (`false`) by default.
+     * @throws MojoExecutionException if KSP execution fails
+     * @throws MojoFailureException if KSP processing reports errors
      */
-    @Parameter(defaultValue = "false")
-    private val ignoreProcessingErrors = false
-
-    @Parameter(property = "kotlin.compiler.allWarningsAsErrors", defaultValue = "false")
-    private var allWarningsAsErrors = false
-
-    @Parameter(defaultValue = "true")
-    private val mapAnnotationArgumentsInJava: Boolean = true
-
-    /**
-     * Enable debug output
-     */
-    @Parameter(property = "ksp.debug", defaultValue = "false")
-    protected var debug = false
-
-    /**
-     * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to include.
-     * When empty, all discovered processors are included by default.
-     *
-     * Use `*` to match within a single package segment and `**` to match across segments.
-     *
-     * Example: include only processors from a specific package:
-     * ```xml
-     * <processorIncludes>
-     *   <processorInclude>com.example.annotation.*</processorInclude>
-     * </processorIncludes>
-     * ```
-     *
-     * @since 0.4.0
-     */
-    @Parameter
-    private var processorIncludes: List<String> = emptyList()
-
-    /**
-     * Glob-style patterns of fully-qualified [SymbolProcessorProvider] class names to exclude.
-     * Providers matching any exclude pattern are removed even if they satisfy an include pattern.
-     *
-     * Example: exclude a specific processor:
-     * ```xml
-     * <processorExcludes>
-     *   <processorExclude>com.example.SlowProcessor</processorExclude>
-     * </processorExcludes>
-     * ```
-     *
-     * @since 0.4.0
-     */
-    @Parameter
-    private var processorExcludes: List<String> = emptyList()
-
-    /**
-     * KSP processor options (key-value pairs)
-     */
-    @Parameter
-    private val apOptions: MutableMap<String, String> = mutableMapOf()
-
-    /**
-     * Module name
-     */
-    @Parameter(defaultValue = $$"${project.artifactId}")
-    private lateinit var moduleName: String
-
-    /**
-     * JVM target version
-     */
-    @Parameter(property = "kotlin.compiler.jvmTarget", defaultValue = "11")
-    private var jvmTarget: String? = null
-
-    /**
-     * Add generated sources to compilation
-     */
-    @Parameter(defaultValue = "true")
-    private val addGeneratedSourcesToCompile = true
-
-    /**
-     * Returns true if processing should be skipped.
-     */
-    protected abstract fun isSkip(): Boolean
-
     @Throws(MojoExecutionException::class, MojoFailureException::class)
-    override fun execute() {
-        if (isSkip()) {
-            log.info("Skipping KSP processing ($scope scope)")
-            return
-        }
-
-        val actualSourceDirectory = getActualSourceDirectory()
+    fun execute() {
+        val actualSourceDirectory = params.getActualSourceDirectory()
         if (!actualSourceDirectory.exists()) {
             log.info(
                 "Source directory does not exist, skipping KSP processing: $actualSourceDirectory",
@@ -222,31 +67,10 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
 
         executeKsp()
 
-        if (addGeneratedSourcesToCompile) {
+        if (params.addGeneratedSourcesToCompile) {
             addGeneratedSources()
         }
     }
-
-    private fun getActualSourceDirectory(): File =
-        sourceDirectory ?: scope.getSourceDirectory(project)
-
-    private fun getActualKotlinOutputDir(): File =
-        kotlinOutputDir ?: scope.getDefaultKotlinOutputDir(project.build.directory)
-
-    private fun getActualJavaOutputDir(): File =
-        javaOutputDir ?: scope.getDefaultJavaOutputDir(project.build.directory)
-
-    private fun getActualClassOutputDir(): File =
-        classOutputDir ?: scope.getDefaultClassOutputDir(project.build.directory)
-
-    private fun getActualResourceOutputDir(): File =
-        resourceOutputDir ?: scope.getDefaultResourceOutputDir(project.build.directory)
-
-    private fun getActualKspOutputDir(): File =
-        kspOutputDir ?: scope.getDefaultKspOutputDir(project.build.directory)
-
-    private fun getActualCachesDir(): File =
-        cachesDir ?: scope.getDefaultCachesDir(project.build.directory)
 
     private fun logProcessorsFound(processorJars: List<File>) {
         log.info("Found ${processorJars.size} KSP processor(s) for $scope sources")
@@ -284,15 +108,19 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
                 "Discovered ${discovered.size} provider(s): " +
                     discovered.map { it::class.qualifiedName },
             )
-            if (processorIncludes.isNotEmpty()) log.info("processorIncludes: $processorIncludes")
-            if (processorExcludes.isNotEmpty()) log.info("processorExcludes: $processorExcludes")
+            if (params.processorIncludes.isNotEmpty()) {
+                log.info("processorIncludes: ${params.processorIncludes}")
+            }
+            if (params.processorExcludes.isNotEmpty()) {
+                log.info("processorExcludes: ${params.processorExcludes}")
+            }
         }
 
         val providers =
             filterProcessorProviders(
                 providers = discovered,
-                includes = processorIncludes,
-                excludes = processorExcludes,
+                includes = params.processorIncludes,
+                excludes = params.processorExcludes,
                 log = log,
             )
 
@@ -311,6 +139,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     }
 
     private fun createKspConfig(): KSPJvmConfig {
+        val project = params.project
         val kotlinConfig =
             project.build
                 ?.pluginsAsMap
@@ -319,7 +148,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
                 )?.configuration as? Xpp3Dom
 
         val resolvedLanguageVersion =
-            languageVersion
+            params.languageVersion
                 ?: kotlinConfig?.getChild("languageVersion")?.value
                 ?: project.properties.getProperty("kotlin.compiler.languageVersion")
                 ?: project.properties.getProperty("kotlin.version")?.let { version ->
@@ -328,13 +157,13 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
                 } ?: "2.2"
 
         val resolvedApiVersion =
-            apiVersion
+            params.apiVersion
                 ?: kotlinConfig?.getChild("apiVersion")?.value
                 ?: project.properties.getProperty("kotlin.compiler.apiVersion")
                 ?: resolvedLanguageVersion
 
         val resolvedJvmTarget =
-            jvmTarget
+            params.jvmTarget
                 ?: kotlinConfig?.getChild("jvmTarget")?.value
                 ?: project.properties.getProperty("kotlin.compiler.jvmTarget")
                 ?: project.properties.getProperty("maven.compiler.release")
@@ -347,53 +176,52 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
                 ?: System.getProperty("java.home")
 
         val resolvedAllWarningsAsErrors =
-            allWarningsAsErrors ||
+            params.allWarningsAsErrors ||
                 kotlinConfig?.getChild("allWarningsAsErrors")?.value?.toBoolean() == true ||
                 project.properties
                     .getProperty(
                         "kotlin.compiler.allWarningsAsErrors",
-                    )?.toBoolean() ==
-                true
+                    )?.toBoolean() == true
 
-        val config =
+        val kspJvmConfig =
             KSPJvmConfig(
-                javaSourceRoots = sourceDirs ?: emptyList(),
-                javaOutputDir = getActualJavaOutputDir(),
+                javaSourceRoots = params.sourceDirs,
+                javaOutputDir = params.getActualJavaOutputDir(),
                 jdkHome = File(resolvedJdkHome),
                 jvmTarget = resolvedJvmTarget,
-                jvmDefaultMode = jvmDefaultMode,
-                moduleName = moduleName,
-                sourceRoots = listOf(getActualSourceDirectory()),
+                jvmDefaultMode = params.jvmDefaultMode,
+                moduleName = params.moduleName,
+                sourceRoots = listOf(params.getActualSourceDirectory()),
                 commonSourceRoots = emptyList(),
                 libraries = scope.getClasspathElements(project).map(::File),
                 friends = emptyList(),
-                processorOptions = apOptions,
+                processorOptions = params.processorOptions,
                 projectBaseDir = project.basedir,
                 outputBaseDir = File(project.build.outputDirectory),
-                cachesDir = getActualCachesDir(),
-                classOutputDir = getActualClassOutputDir(),
-                kotlinOutputDir = getActualKotlinOutputDir(),
-                resourceOutputDir = getActualResourceOutputDir(),
-                incremental = incremental,
-                incrementalLog = incrementalLog,
+                cachesDir = params.getActualCachesDir(),
+                classOutputDir = params.getActualClassOutputDir(),
+                kotlinOutputDir = params.getActualKotlinOutputDir(),
+                resourceOutputDir = params.getActualResourceOutputDir(),
+                incremental = params.incremental,
+                incrementalLog = params.incrementalLog,
                 modifiedSources = mutableListOf(),
                 removedSources = mutableListOf(),
                 changedClasses = mutableListOf(),
                 languageVersion = resolvedLanguageVersion,
                 apiVersion = resolvedApiVersion,
                 allWarningsAsErrors = resolvedAllWarningsAsErrors,
-                mapAnnotationArgumentsInJava = mapAnnotationArgumentsInJava,
+                mapAnnotationArgumentsInJava = params.mapAnnotationArgumentsInJava,
             )
 
         if (debug) {
             log.info(
                 "Calling KSP processing with config: ${
-                    ToStringBuilder.reflectionToString(config, ToStringStyle.MULTI_LINE_STYLE)
+                    ToStringBuilder.reflectionToString(kspJvmConfig, ToStringStyle.MULTI_LINE_STYLE)
                 }",
             )
         }
 
-        return config
+        return kspJvmConfig
     }
 
     private fun executeProcessing(
@@ -404,7 +232,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
         // to ensure complete isolation in parallel builds
         val processing =
             try {
-                kspFactory.create(
+                params.kspFactory.create(
                     kspConfig = kspConfig,
                     symbolProcessorProviders = processorProviders,
                     logger = KspLogger(log = log, scope = scope),
@@ -432,19 +260,19 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
         }
     }
 
-    private fun logIncrementalChanges(config: KSPJvmConfig) {
+    private fun logIncrementalChanges(kspJvmConfig: KSPJvmConfig) {
         if (!debug) return
 
-        if (config.modifiedSources.isNotEmpty()) {
-            log.info("KSP processing finished, modifiedSources: ${config.modifiedSources}")
+        if (kspJvmConfig.modifiedSources.isNotEmpty()) {
+            log.info("KSP processing finished, modifiedSources: ${kspJvmConfig.modifiedSources}")
         }
 
-        if (config.removedSources.isNotEmpty()) {
-            log.info("KSP processing finished, removedSources: ${config.removedSources}")
+        if (kspJvmConfig.removedSources.isNotEmpty()) {
+            log.info("KSP processing finished, removedSources: ${kspJvmConfig.removedSources}")
         }
 
-        if (config.changedClasses.isNotEmpty()) {
-            log.info("KSP processing finished, changedClasses: ${config.changedClasses}")
+        if (kspJvmConfig.changedClasses.isNotEmpty()) {
+            log.info("KSP processing finished, changedClasses: ${kspJvmConfig.changedClasses}")
         }
     }
 
@@ -453,7 +281,7 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
 
         log.error("KotlinSymbolProcessing failed with exit code: $exitCode")
 
-        if (ignoreProcessingErrors) {
+        if (params.ignoreProcessingErrors) {
             log.warn("Continue build because `ignoreProcessingErrors` is true")
         } else {
             throw MojoFailureException(
@@ -465,12 +293,12 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     private fun createDirectories() {
         val directories =
             listOf(
-                getActualKotlinOutputDir(),
-                getActualJavaOutputDir(),
-                getActualClassOutputDir(),
-                getActualResourceOutputDir(),
-                getActualKspOutputDir(),
-                getActualCachesDir(),
+                params.getActualKotlinOutputDir(),
+                params.getActualJavaOutputDir(),
+                params.getActualClassOutputDir(),
+                params.getActualResourceOutputDir(),
+                params.getActualKspOutputDir(),
+                params.getActualCachesDir(),
             )
 
         try {
@@ -481,9 +309,10 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     }
 
     private fun findKspProcessors(): List<File> {
-        val pluginProcessors =
-            pluginDescriptor?.artifacts?.let { findProcessorsInArtifacts(it) } ?: emptyList()
-        val projectProcessors = findProcessorsInArtifacts(project.artifacts)
+        val pluginArtifacts = params.pluginDescriptor?.artifacts
+        val projectArtifacts = params.project.artifacts
+        val pluginProcessors = pluginArtifacts?.let { findProcessorsInArtifacts(it) } ?: emptyList()
+        val projectProcessors = findProcessorsInArtifacts(projectArtifacts)
 
         return pluginProcessors + projectProcessors
     }
@@ -510,19 +339,19 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
     }
 
     private fun addKotlinSources() {
-        val kotlinOutputDir = getActualKotlinOutputDir()
+        val kotlinOutputDir = params.getActualKotlinOutputDir()
         if (!kotlinOutputDir.exists()) return
 
         if (debug) {
             log.info("Adding generated Kotlin sources: $kotlinOutputDir")
         }
 
-        scope.addCompileSourceRoot(project, kotlinOutputDir.absolutePath)
+        scope.addCompileSourceRoot(params.project, kotlinOutputDir.absolutePath)
     }
 
     private fun addJavaSources() {
-        val javaOutputDir = getActualJavaOutputDir()
-        val kotlinOutputDir = getActualKotlinOutputDir()
+        val javaOutputDir = params.getActualJavaOutputDir()
+        val kotlinOutputDir = params.getActualKotlinOutputDir()
 
         if (!javaOutputDir.exists() || javaOutputDir == kotlinOutputDir) return
 
@@ -530,11 +359,11 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
             log.info("Adding generated Java sources: $javaOutputDir")
         }
 
-        scope.addCompileSourceRoot(project, javaOutputDir.absolutePath)
+        scope.addCompileSourceRoot(params.project, javaOutputDir.absolutePath)
     }
 
     private fun addResources() {
-        val resourceOutputDir = getActualResourceOutputDir()
+        val resourceOutputDir = params.getActualResourceOutputDir()
         if (!resourceOutputDir.exists()) return
 
         if (debug) {
@@ -542,10 +371,10 @@ abstract class AbstractKspProcessMojo : AbstractMojo() {
         }
 
         val resource =
-            org.apache.maven.model.Resource().apply {
+            Resource().apply {
                 directory = resourceOutputDir.absolutePath
             }
 
-        scope.addResource(project, resource)
+        scope.addResource(params.project, resource)
     }
 }

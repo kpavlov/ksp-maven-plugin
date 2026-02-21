@@ -34,7 +34,7 @@ import org.apache.maven.plugin.logging.Log
  *   and [excludes] are empty the original list is returned unchanged and no provider
  *   is excluded regardless of its `qualifiedName`.
  */
-internal fun filterProcessorProviders(
+fun filterProcessorProviders(
     providers: List<SymbolProcessorProvider>,
     includes: List<String>,
     excludes: List<String>,
@@ -79,7 +79,7 @@ internal fun filterProcessorProviders(
  * - `?` matches any single non-dot character
  * - All other characters in [pattern] are matched literally
  */
-internal fun matchesGlob(
+fun matchesGlob(
     text: String,
     pattern: String,
 ): Boolean = buildGlobRegex(pattern).matches(text)
