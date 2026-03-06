@@ -53,7 +53,7 @@
         <ksp.version>2.3.6</ksp.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
-        <maven.version>3.9.12</maven.version>
+        <maven.version>3.9.13</maven.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mockito-kotlin.version>6.2.3</mockito-kotlin.version>
         <mockito.version>5.22.0</mockito.version>
