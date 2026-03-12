@@ -56,7 +56,7 @@
         <maven.version>3.9.13</maven.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mockito-kotlin.version>6.2.3</mockito-kotlin.version>
-        <mockito.version>5.22.0</mockito.version>
+        <mockito.version>5.23.0</mockito.version>
         <junit.version>6.0.3</junit.version>
     </properties>
 
