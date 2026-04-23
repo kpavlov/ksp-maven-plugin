@@ -6,6 +6,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.file.shouldExist
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import me.kpavlov.ksp.maven.KspMojoTestHelpers.configureMojo
@@ -20,20 +21,22 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.spy
 import org.mockito.kotlin.whenever
 
 @ExtendWith(MockitoExtension::class)
 class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMojo>() {
     override fun createMojo(): KspProcessSourcesMojo =
-        object : KspProcessSourcesMojo() {
-            override val kspFactory: KspFactory
-                get() =
+        spy(
+            object : KspProcessSourcesMojo() {
+                override fun getKspFactory(): KspFactory =
                     KspFactory { kspConfig, symbolProcessorProviders, _ ->
                         capturedKSPConfig = kspConfig
                         capturedSymbolProcessorProviders = symbolProcessorProviders
                         processing
                     }
-        }
+            },
+        )
 
     @Test
     fun `should skip execution when skip property is true`() {
@@ -73,6 +76,7 @@ class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMo
         // Execute and verify that processing was called (implying processor was detected)
         mojo.execute()
 
+        capturedKSPConfig.shouldNotBeNull()
         // If we got here without exception, the processor was detected and processing was invoked
     }
 
@@ -103,6 +107,10 @@ class KspProcessSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessSourcesMo
         whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.OK)
 
         mojo.execute()
+
+        capturedKSPConfig shouldNotBeNull {
+            this.experimentalPsiResolution shouldBe mojo.experimentalPsiResolution
+        }
     }
 
     @Test

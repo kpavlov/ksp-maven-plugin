@@ -45,6 +45,7 @@ object KspMojoTestHelpers {
         jvmTarget: String? = null,
         skip: Boolean? = null,
         addGeneratedSourcesToCompile: Boolean? = null,
+        experimentalPsiResolution: Boolean? = null,
         processorIncludes: List<String>? = null,
         processorExcludes: List<String>? = null,
     ) {
@@ -67,6 +68,13 @@ object KspMojoTestHelpers {
         apiVersion?.let { setFieldInHierarchy(mojo, "apiVersion", it) }
         ignoreProcessingErrors?.let { setFieldInHierarchy(mojo, "ignoreProcessingErrors", it) }
         allWarningsAsErrors?.let { setFieldInHierarchy(mojo, "allWarningsAsErrors", it) }
+        experimentalPsiResolution?.let {
+            setFieldInHierarchy(
+                mojo,
+                "experimentalPsiResolution",
+                it,
+            )
+        }
         mapAnnotationArgumentsInJava?.let {
             setFieldInHierarchy(
                 mojo,
