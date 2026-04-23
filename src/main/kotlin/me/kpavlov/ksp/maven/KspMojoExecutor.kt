@@ -211,6 +211,7 @@ internal class KspMojoExecutor(
                 apiVersion = resolvedApiVersion,
                 allWarningsAsErrors = resolvedAllWarningsAsErrors,
                 mapAnnotationArgumentsInJava = params.mapAnnotationArgumentsInJava,
+                experimentalPsiResolution = params.experimentalPsiResolution,
             )
 
         if (debug) {
@@ -232,7 +233,7 @@ internal class KspMojoExecutor(
         // to ensure complete isolation in parallel builds
         val processing =
             try {
-                params.kspFactory.create(
+                params.getKspFactory().create(
                     kspConfig = kspConfig,
                     symbolProcessorProviders = processorProviders,
                     logger = KspLogger(log = log, scope = scope),

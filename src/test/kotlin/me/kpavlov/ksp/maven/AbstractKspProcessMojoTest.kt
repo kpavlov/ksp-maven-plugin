@@ -41,6 +41,8 @@ abstract class AbstractKspProcessMojoTest<T : AbstractKspProcessMojo> {
     fun beforeEach() {
         mojo = createMojo()
 
+        Thread.currentThread().contextClassLoader = this::class.java.classLoader
+
         baseDir = tempDir.toFile()
         buildDir = baseDir.resolve("target")
 
@@ -75,6 +77,7 @@ abstract class AbstractKspProcessMojoTest<T : AbstractKspProcessMojo> {
             apiVersion = "2.2",
             skip = false,
             addGeneratedSourcesToCompile = true,
+            experimentalPsiResolution = false,
         )
     }
 

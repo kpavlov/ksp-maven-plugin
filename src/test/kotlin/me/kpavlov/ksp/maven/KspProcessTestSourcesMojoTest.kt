@@ -2,10 +2,10 @@ package me.kpavlov.ksp.maven
 
 import com.google.devtools.ksp.impl.KotlinSymbolProcessing
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.file.shouldExist
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import me.kpavlov.ksp.maven.KspMojoTestHelpers.configureMojo
@@ -26,13 +26,12 @@ import java.io.File
 class KspProcessTestSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessTestSourcesMojo>() {
     override fun createMojo(): KspProcessTestSourcesMojo =
         object : KspProcessTestSourcesMojo() {
-            override val kspFactory: KspFactory
-                get() =
-                    KspFactory { kspConfig, symbolProcessorProviders, _ ->
-                        capturedKSPConfig = kspConfig
-                        capturedSymbolProcessorProviders = symbolProcessorProviders
-                        processing
-                    }
+            override fun getKspFactory(): KspFactory =
+                KspFactory { kspConfig, symbolProcessorProviders, _ ->
+                    capturedKSPConfig = kspConfig
+                    capturedSymbolProcessorProviders = symbolProcessorProviders
+                    processing
+                }
         }
 
     @BeforeEach
@@ -124,6 +123,10 @@ class KspProcessTestSourcesMojoTest : AbstractKspProcessMojoTest<KspProcessTestS
         whenever(processing.execute()).thenReturn(KotlinSymbolProcessing.ExitCode.OK)
 
         mojo.execute()
+
+        capturedKSPConfig shouldNotBeNull {
+            this.experimentalPsiResolution shouldBe mojo.experimentalPsiResolution
+        }
     }
 
     @Test

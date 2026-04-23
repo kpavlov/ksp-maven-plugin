@@ -6,6 +6,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.jspecify.annotations.NonNull;
 
 import java.io.File;
 import java.util.Collections;
@@ -321,12 +322,23 @@ public abstract class AbstractKspProcessMojo extends AbstractMojo implements Ksp
      * Add generated sources to compilation.
      *
      * <p>When enabled, generated Kotlin and Java sources are automatically added
-     * to the compile source roots, and generated resources are added to the project resources.</p>
+     * to the compiler source roots, and generated resources are added to the project resources.</p>
      *
      * @since 0.1.0
      */
     @Parameter(defaultValue = "true")
     private boolean addGeneratedSourcesToCompile = true;
+
+    /**
+     * Enable experimental Psi resolution.
+     * <p>
+     * An experimental, optimized strategy that uses PSI to find annotations more efficiently
+     * by avoiding full resolution where possible.
+     *
+     * @since 0.4.1
+     */
+    @Parameter(defaultValue = "false")
+    private boolean experimentalPsiResolution;
 
     /**
      * Returns the processing scope (MAIN or TEST).
@@ -349,6 +361,7 @@ public abstract class AbstractKspProcessMojo extends AbstractMojo implements Ksp
      * @return the KSP factory
      */
     @Override
+    @NonNull
     public KspFactory getKspFactory() {
         return DefaultKspFactory.INSTANCE;
     }
@@ -488,5 +501,10 @@ public abstract class AbstractKspProcessMojo extends AbstractMojo implements Ksp
     @Override
     public boolean getAddGeneratedSourcesToCompile() {
         return addGeneratedSourcesToCompile;
+    }
+
+    @Override
+    public boolean getExperimentalPsiResolution() {
+        return experimentalPsiResolution;
     }
 }

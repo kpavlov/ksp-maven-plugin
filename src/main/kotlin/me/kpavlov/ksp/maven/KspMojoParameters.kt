@@ -30,9 +30,6 @@ interface KspMojoParameters {
     /** Processing scope (MAIN or TEST). */
     val scope: ProcessingScope
 
-    /** Factory for creating KSP instances. */
-    val kspFactory: KspFactory
-
     /** Explicit source directory; defaults to the scope's standard source directory when null. */
     val sourceDirectory: File?
 
@@ -116,6 +113,9 @@ interface KspMojoParameters {
     /** When true, generated Kotlin/Java sources and resources are added to the compile roots. */
     val addGeneratedSourcesToCompile: Boolean
 
+    /** When true, experimental Psi resolution is enabled. */
+    val experimentalPsiResolution: Boolean
+
     // ── Computed directory accessors ─────────────────────────────────────────
 
     /** Returns the resolved source directory, falling back to the scope default. */
@@ -143,4 +143,7 @@ interface KspMojoParameters {
 
     /** Returns the resolved caches directory, falling back to the scope default. */
     fun getActualCachesDir(): File = cachesDir ?: scope.getDefaultCachesDir(project.build.directory)
+
+    /** Factory for creating KSP instances. */
+    fun getKspFactory(): KspFactory
 }
