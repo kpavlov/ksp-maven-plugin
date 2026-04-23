@@ -248,6 +248,9 @@ All available configuration options:
     <!-- Add generated sources to compilation (default: true) -->
     <addGeneratedSourcesToCompile>true</addGeneratedSourcesToCompile>
 
+    <!-- Enable experimental PsiResolution (default: false) -->
+    <experimentalPsiResolution>false</experimentalPsiResolution>
+    
     <!-- Enable debug output (default: false) -->
     <debug>false</debug>
   </configuration>
