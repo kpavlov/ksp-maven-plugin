@@ -17,7 +17,6 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 
 class KspLifecycleParticipantTest {
-
     private lateinit var participant: KspLifecycleParticipant
     private lateinit var session: MavenSession
     private lateinit var project: MavenProject
@@ -35,7 +34,9 @@ class KspLifecycleParticipantTest {
 
         `when`(session.projects).thenReturn(listOf(project))
         `when`(project.build).thenReturn(build)
-        `when`(build.pluginsAsMap).thenReturn(mapOf("me.kpavlov.ksp.maven:ksp-maven-plugin" to plugin))
+        `when`(build.pluginsAsMap).thenReturn(
+            mapOf("me.kpavlov.ksp.maven:ksp-maven-plugin" to plugin),
+        )
     }
 
     @Test

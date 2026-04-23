@@ -86,7 +86,7 @@ enum class ProcessingScope {
 
         override fun getDefaultCachesDir(buildDirectory: String): File =
             File("$buildDirectory/ksp-test-cache")
-    };
+    }, ;
 
     /**
      * Returns the source directory for this processing scope.
