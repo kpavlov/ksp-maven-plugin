@@ -7,7 +7,7 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <kotlin.version>2.3.20</kotlin.version>
+        <kotlin.version>2.3.21</kotlin.version>
         <arrow.version>2.2.2.1</arrow.version>
         <maven.compiler.release>17</maven.compiler.release>
         <ksp.plugin.version>0.4.1</ksp.plugin.version>
