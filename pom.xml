@@ -57,7 +57,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mockito-kotlin.version>6.3.0</mockito-kotlin.version>
         <mockito.version>5.23.0</mockito.version>
-        <junit.version>6.0.3</junit.version>
+        <junit.version>6.1.0</junit.version>
     </properties>
 
     <dependencyManagement>
