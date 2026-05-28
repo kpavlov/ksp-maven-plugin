@@ -4,7 +4,7 @@
 
     <groupId>me.kpavlov.ksp.maven</groupId>
     <artifactId>ksp-maven-plugin</artifactId>
-    <version>0.4.3-SNAPSHOT</version>
+    <version>0.4.5-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>KSP Maven Plugin</name>
@@ -569,7 +569,7 @@
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
-                            <autoPublish>false</autoPublish>
+                            <autoPublish>true</autoPublish>
                             <waitUntil>validated</waitUntil>
                         </configuration>
                     </plugin>
