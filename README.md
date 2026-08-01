@@ -47,7 +47,7 @@ Minimal setup for processing main sources only:
 ```xml
 
 <properties>
-  <kotlin.version>2.3.10</kotlin.version>
+  <kotlin.version>2.3.21</kotlin.version>
 </properties>
 
 <build>
@@ -98,7 +98,7 @@ To process both main and test sources, use `<extensions>true</extensions>` to ac
 
 ```xml
 <properties>
-  <kotlin.version>2.3.10</kotlin.version>
+  <kotlin.version>2.3.21</kotlin.version>
 </properties>
 
 <build>
@@ -192,7 +192,10 @@ All available configuration options:
     <incremental>true</incremental>
 
     <!-- Enable incremental compilation logging (default: false) -->
-    <incrementalLog>true</incrementalLog>
+    <incrementalLoggingEnabled>true</incrementalLoggingEnabled>
+    
+    <!-- dependency graph origin name (default: "") -->
+    <dependencyGraphOriginName>root</dependencyGraphOriginName>
 
     <!-- Kotlin language version (default: detected from kotlin-maven-plugin or kotlin.version) -->
     <languageVersion>2.3</languageVersion>
