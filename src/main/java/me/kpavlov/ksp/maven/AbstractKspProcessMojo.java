@@ -153,7 +153,10 @@ public abstract class AbstractKspProcessMojo extends AbstractMojo implements Ksp
      * @since 0.1.0
      */
     @Parameter(defaultValue = "false")
-    private boolean incrementalLog;
+    private boolean incrementalLoggingEnabled;
+
+    @Parameter(defaultValue = "")
+    private String dependencyGraphOriginName;
 
     /**
      * JVM default mode for generating default interface methods.
@@ -434,8 +437,13 @@ public abstract class AbstractKspProcessMojo extends AbstractMojo implements Ksp
     }
 
     @Override
-    public boolean getIncrementalLog() {
-        return incrementalLog;
+    public boolean getIncrementalLoggingEnabled() {
+        return incrementalLoggingEnabled;
+    }
+
+    @Override
+    public String getDependencyGraphOriginName() {
+        return dependencyGraphOriginName;
     }
 
     @Override
