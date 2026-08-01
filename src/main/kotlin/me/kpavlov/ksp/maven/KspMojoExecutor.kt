@@ -1,5 +1,6 @@
 package me.kpavlov.ksp.maven
 
+import com.google.devtools.ksp.IncrementalContextLoggingOptions
 import com.google.devtools.ksp.impl.KotlinSymbolProcessing
 import com.google.devtools.ksp.processing.KSPJvmConfig
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
@@ -203,7 +204,11 @@ internal class KspMojoExecutor(
                 kotlinOutputDir = params.getActualKotlinOutputDir(),
                 resourceOutputDir = params.getActualResourceOutputDir(),
                 incremental = params.incremental,
-                incrementalLog = params.incrementalLog,
+                incrementalContextLoggingOptions =
+                    IncrementalContextLoggingOptions(
+                        incrementalLoggingEnabled = params.incrementalLoggingEnabled,
+                        dependencyGraphOriginName = params.dependencyGraphOriginName,
+                    ),
                 modifiedSources = mutableListOf(),
                 removedSources = mutableListOf(),
                 changedClasses = mutableListOf(),

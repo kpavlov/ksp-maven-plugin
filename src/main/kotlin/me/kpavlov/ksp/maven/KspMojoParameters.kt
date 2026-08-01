@@ -61,7 +61,10 @@ interface KspMojoParameters {
     val incremental: Boolean
 
     /** Enable incremental processing log output. */
-    val incrementalLog: Boolean
+    val incrementalLoggingEnabled: Boolean
+
+    /** dependencyGraph origin name */
+    val dependencyGraphOriginName: String?
 
     /**
      * JVM default mode for generating default interface methods in Kotlin interfaces.
